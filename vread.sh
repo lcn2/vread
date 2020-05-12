@@ -1,0 +1,1321 @@
+#!/bin/bash
+#
+# vread.sh - read from stdin and validate the input
+#
+# usage:
+#	NOTE: See USAGE variable below for details of the command line
+#
+# stdout:
+#	validated input or empty line
+#
+# exit code:
+#	0	all is OK and input is printed to stdout as a non-empty line
+#	!= 0	bad input, error or interrpt with empty line return
+#
+#	NOTE: See USAGE variable below for details
+#	NOTE: See USAGE variable below for details of the exit codes
+#
+#####
+#
+# By: Landon Curt Noll, 2004-2015, 2019, 2020.
+#     http://www.isthe.com/chongo
+#
+# This work is licensed under the Creative Commons
+# Attribution-ShareAlike 4.0 International License.
+# To view a copy of this license, visit
+# http://creativecommons.org/licenses/by-sa/4.0/.
+#
+# This means you are free to:
+#
+# Share — copy and redistribute the material in any medium or format
+#
+# Adapt — remix, transform, and build upon the material for any purpose,
+# even commercially.
+#
+# The licensor cannot revoke these freedoms as long as you follow the license terms.
+#
+# Under the following terms:
+#
+# Attribution — You must give appropriate credit, provide a link to
+# the license, and indicate if changes were made. You may do so in any
+# reasonable manner, but not in any way that suggests the licensor endorses
+# you or your use.
+#
+# ShareAlike — If you remix, transform, or build upon the material, you
+# must distribute your contributions under the same license as the original.
+#
+# No additional restrictions — You may not apply legal terms or
+# technological measures that legally restrict others from doing anything
+# the license permits.
+#
+# Share and enjoy! :-)
+
+# setup
+#
+export VERSION="4.2-20200221"
+export V_FLAG=
+export TYPE=
+export PROMPT=
+export ERRMSG=
+export O_FLAG=
+export E_FLAG=
+export MAXLEN=4096
+export TIMEOUT=
+export EXIT_BADFORMAT=1
+export EXIT_INTERRUPT=2
+export EXIT_USAGE=3
+export EXIT_TOOLONG=4
+export EXIT_TIMEOUT=5
+export EXIT_READERR=6
+export EXIT_EMPTY=7
+export PROG="$0"
+export USAGE="usage:
+
+$PROG [-h] [-v] [-o] [-e] [-m maxlen] [-t timeout] type prompt [errmsg]
+
+    -h		output usage message and exit $EXIT_USAGE
+    -v		verbose mode for debugging
+
+    -o		prompt once, exit $EXIT_BADFORMAT if invalid input
+    -e		enable READLINE editing mode
+    -m maxlen	maximum chars for input (def: $MAXLEN)
+    -t timeout	Failure if not a complete line in timeout secs (def: forever)
+
+    type	type of input to validate, must be one of:
+
+	natint		integer > 0
+	posint		integer >= 0
+	int		any integer
+
+	natreal		any real number > 0
+	posreal		any real number >= 0
+	real		any real number
+
+	string		any non-empty single line string, trailing newline removed
+	yorn		y or n or Y or N or Yes or No or YES or NO
+	cde		c or C or d or D or e or E
+	ds		d or D or s or S
+	ab		a or A or b or B
+	fh		f or F or h or H
+	v4v6		v4 or V4 or v6 or V6
+	123		1 or 2 or 3
+	012		0 or 1 or 2
+
+	cr		Just press return, and then return a single space
+
+	ip4addr		IPv4 address
+	ip6addr		IPv6 address
+	ipaddr		IPv4 or IPv6 address
+
+	port		UDP or TCP port number (1-65535)
+
+	v4prefix	0 to 32
+	v6prefix	0 to 128
+
+	hostname	hostname valid under RFC-952 and RFC-1123
+	hostoripv4	hostname valid under RFC-952 and RFC-1123 or IPv4 address
+	hostorip	hostname valid under RFC-952 and RFC-1123 or IPv4 address or IPv6 address
+
+	interface	eth followed by a digit or single letter
+
+	sane_filename	filename (not a path) excluding characters that are likely to cause problems
+	insane_filename	filename (not a path) - NOT RECOMMENDED
+
+	sane_path	poth of sane_filenames excludung path components that are likely to cause problems
+	insane_path	poth of insane_filenames - NOT RECOMMENDED
+
+	sane_username	valid and sane username
+	sane_password	valid and sane password
+
+	sane_url	valid and sane URL
+
+	trans_mode_0	file, http, https, ftp plus Caps and ALL CAPS
+	trans_mode_1	scp, sftp, ftp plus Caps and ALL CAPS
+
+    prompt	input prompt to print, without a trailing newline, followed by a space
+
+    errmsg	optional error message to print of input is invalid
+
+NOTE: Leading whitespace and trailing is removed from input.
+
+exit codes:
+
+    0	valid input, input printed to stdout
+
+    $EXIT_BADFORMAT	invalid input and -o given
+    $EXIT_INTERRUPT	interrupt
+
+    $EXIT_USAGE	usage or command line error
+    $EXIT_TOOLONG	input was too long
+    $EXIT_TIMEOUT	timeout on input and -t timeout given
+    $EXIT_READERR	some other read error occurred
+    $EXIT_EMPTY	empty input line
+
+Examples:
+
+    REMOTE_URL=\$($PROG -e -o sane_url 'Enter the URL of the remote server')
+    status=\"\$?\"
+    if [[ -z \$REMOTE_URL || \$status -ne 0 ]]; then
+	# ... error processing or exit
+    fi
+
+    HOST_NAME=\$($PROG -e hostname 'Enter the hostname:' 'Invalid syntax for a hostname')
+    status=\"\$?\"
+    if [[ -z \$HOST_NAME || \$status -ne 0 ]]; then
+	# ... error processing or exit
+    fi
+
+Version: $VERSION"
+
+# trap interrupts
+#
+#trap "printf '\n\ninterrupted\n\n' 1>&2; echo; exit $EXIT_INTERRUPT" 1 2 3 15	# exit 2
+trap "printf '\n\ninterrupted\n\n' 1>&2; echo; exit 2" 1 2 3 15	# exit 2
+
+# parse args
+#
+while getopts :hvoem:t: flag; do
+
+    # validate flag
+    #
+    case "$flag" in
+    h)  echo "$USAGE" 1>&2
+	echo # print empty stdout to indicate error
+	exit "$EXIT_USAGE" # exit 3
+	;;
+    v)  V_FLAG="true"
+	;;
+    o)  O_FLAG="true"
+	;;
+    e)  E_FLAG="true"
+	;;
+    m)  MAXLEN="$OPTARG"
+	if [[ ! $MAXLEN =~ ^[0-9]{1,}$ || $MAXLEN -le 0 ]]; then
+	    echo "$PROG: -m chars must be an integer > 0: $MAXLEN" 1>&2
+	    echo # print empty stdout to indicate error
+	    exit "$EXIT_USAGE" # exit 3
+	fi
+	;;
+    t)  TIMEOUT="$OPTARG"
+	if [[ ! $TIMEOUT =~ ^[0-9]{1,}$ || $TIMEOUT -lt 0 ]]; then
+	    echo "$PROG: -t timeout must be an integer >= 0: $TIMEOUT" 1>&2
+	    echo # print empty stdout to indicate error
+	    exit "$EXIT_USAGE" # exit 3
+	fi
+	;;
+    \?) echo "$PROG: invalid option: -$OPTARG" 1>&2
+	echo "$USAGE" 1>&2
+	echo # print empty stdout to indicate error
+	exit "$EXIT_USAGE" # exit 3
+	;;
+    :)  echo "$PROG: option -$OPTARG requires an argument" 1>&2
+	echo "$USAGE" 1>&2
+	echo # print empty stdout to indicate error
+	exit "$EXIT_USAGE" # exit 3
+	;;
+    *)  echo "$PROG: unexpected return from getopts: $flag" 1>&2
+	echo "$USAGE" 1>&2
+	echo # print empty stdout to indicate error
+	exit "$EXIT_USAGE" # exit 3
+	;;
+esac
+done
+shift $(( OPTIND - 1 ));
+#
+# parse the 2 or 3 option args
+#
+case "$#" in
+2) TYPE="$1"
+   PROMPT="$2"
+   ERRMSG=""
+   ;;
+3) TYPE="$1"
+   PROMPT="$2"
+   ERRMSG="$3"
+   ;;
+*)  echo "$PROG: must have 2 or 3 args" 1>&2
+    echo "$USAGE" 1>&2
+    echo # print empty stdout to indicate error
+    exit "$EXIT_USAGE" # exit 3
+    ;;
+esac
+
+# pre-validate type
+#
+case "$TYPE" in
+natint)
+    ;;
+posint)
+    ;;
+int)
+    ;;
+
+natreal)
+    ;;
+posreal)
+    ;;
+real)
+    ;;
+
+string)
+    ;;
+yorn)
+    ;;
+cde)
+    ;;
+ds)
+    ;;
+ab)
+    ;;
+fh)
+    ;;
+v4v6)
+    ;;
+123)
+    ;;
+012)
+    ;;
+
+cr)
+    ;;
+
+ip4addr)
+    ;;
+ip6addr)
+    ;;
+ipaddr)
+    ;;
+
+port)
+    ;;
+
+v4prefix)
+    ;;
+v6prefix)
+    ;;
+
+hostname)
+    ;;
+hostoripv4)
+    ;;
+hostorip)
+    ;;
+
+interface)
+    ;;
+
+sane_filename)
+    ;;
+insane_filename)
+    ;;
+
+sane_path)
+    ;;
+insane_path)
+    ;;
+
+sane_username)
+    ;;
+sane_password)
+    ;;
+
+sane_url)
+    ;;
+
+trans_mode_0)
+    ;;
+trans_mode_1)
+    ;;
+
+*)  if [[ -n $V_FLAG ]]; then
+	echo "$PROG: unknown type: $TYPE" 1>&2
+    fi
+    echo # print empty stdout to indicate error
+    exit "$EXIT_USAGE" # exit 3
+    ;;
+esac
+
+# IPv4 REGEX
+#
+# See:
+#	https://stackoverflow.com/a/5284410
+#	https://gist.github.com/syzdek/6086792
+#
+RE_IPV4="((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])"
+export IPV4ADDR_REGEX='^'"$RE_IPV4"'$'
+
+# IPv6 REGEX
+#
+# See:
+#	https://stackoverflow.com/a/17871737
+#	https://gist.github.com/syzdek/6086792
+#
+RE_IPV6="(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|"
+RE_IPV6="${RE_IPV6}([0-9a-fA-F]{1,4}:){1,7}:|"
+RE_IPV6="${RE_IPV6}([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|"
+RE_IPV6="${RE_IPV6}([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|"
+RE_IPV6="${RE_IPV6}([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|"
+RE_IPV6="${RE_IPV6}([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|"
+RE_IPV6="${RE_IPV6}([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|"
+RE_IPV6="${RE_IPV6}[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|"
+RE_IPV6="${RE_IPV6}:((:[0-9a-fA-F]{1,4}){1,7}|"
+RE_IPV6="${RE_IPV6}:)|"
+RE_IPV6="${RE_IPV6}fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|"
+RE_IPV6="${RE_IPV6}::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|"
+RE_IPV6="${RE_IPV6}(2[0-4]|"
+RE_IPV6="${RE_IPV6}1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|"
+RE_IPV6="${RE_IPV6}(2[0-4]|"
+RE_IPV6="${RE_IPV6}1{0,1}[0-9]){0,1}[0-9])|"
+RE_IPV6="${RE_IPV6}([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|"
+RE_IPV6="${RE_IPV6}(2[0-4]|"
+RE_IPV6="${RE_IPV6}1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|"
+RE_IPV6="${RE_IPV6}(2[0-4]|"
+RE_IPV6="${RE_IPV6}1{0,1}[0-9]){0,1}[0-9]))"
+export IPV6ADDR_REGEX='^'"$RE_IPV6"'$'
+
+# port - UDP or TCP port number (1-65535)
+#
+RE_PORT="[0-9]{1,4}"
+RE_PORT="${RE_PORT}|[0-5][0-9][0-9][0-9][0-9]"
+RE_PORT="${RE_PORT}|6[0-4][0-9][0-9][0-9]"
+RE_PORT="${RE_PORT}|65[0-4][0-9][0-9]"
+RE_PORT="${RE_PORT}|655[0-2][0-9]"
+RE_PORT="${RE_PORT}|6553[0-5]"
+export PORT_REGEX='^('"$RE_PORT"')$'
+
+# IPv4 CIDR 0 thru 32
+#
+RE_IPV4CIDR="[0-9]"
+RE_IPV4CIDR="${RE_IPV4CIDR}|[1-2][0-9]"
+RE_IPV4CIDR="${RE_IPV4CIDR}|3[0-2]"
+export IPV4CIDR_REGEX='^('"$RE_IPV4CIDR"')$'
+
+# IPv6 CIDR 0 thru 128
+#
+RE_IPV6CIDR="[0-9]"
+RE_IPV6CIDR="${RE_IPV6CIDR}|[1-9][0-9]"
+RE_IPV6CIDR="${RE_IPV6CIDR}|1[0-1][0-9]"
+RE_IPV6CIDR="${RE_IPV6CIDR}|12[0-8]"
+export IPV6CIDR_REGEX='^('"$RE_IPV6CIDR"')$'
+
+# interface - eth followed by a digit or single letter
+#
+RE_INTERFACE="eth[0-9a-z]"
+export INTERFACE_REGEX='^('"$RE_INTERFACE"')$'
+
+# Hostname REGEX - may include domain
+#
+# See:
+#	https://stackoverflow.com/a/3824105
+#
+RE_HOSTNAME="(([a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?)([.]([a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?))*)"
+export HOSTNAME_REGEX='^'"$RE_HOSTNAME"'$'
+
+# Insane Filename REGEX
+#
+# WARNING: Use of filenames that are insane as the
+#	   potential to cause significant problems.
+#
+# Use Sane filename REGEX instead.
+#
+# NOTE: Filenames must be no longer than 255 characters.
+#
+RE_INSANE_FILENAME="[^/]+"
+export INSANE_FILENAME_REGEX='^'"$RE_INSANE_FILENAME"'$'
+
+# Sane filename REGEX
+#
+# We disallow dangerous characters, that while legal,
+# has the potential to cause significant problems in filenames.
+#
+# We only allow filenames that contain:
+#
+#	0-9
+#	A-Z
+#	a-z
+#	+,_.-
+#
+# AND that start with only:
+#
+#	0-9
+#	A-Z
+#	a-z
+#
+# NOTE: Filenames must be no longer than 255 characters.
+#
+RE_SANE_FILENAME="[0-9A-Za-z][0-9A-Za-z+,_.-]*"
+export SANE_FILENAME_REGEX='^'"$RE_SANE_FILENAME"'$'
+
+# Sane path REGEX
+#
+# Paths may only contain same filename characters.
+# Paths may not use .. as filename components.
+# Paths ,ay not use . as a filename component after starting with a ./ component.
+# Paths must not be / alone.
+# Paths must not be . alone.
+# Paths may not contain more than one / in a row.
+#
+# NOTE: paths should not be longer than 255 characters.
+#
+RE_SANE_PATH="${RE_SANE_FILENAME}"
+RE_SANE_PATH="${RE_SANE_PATH}|(/${RE_SANE_FILENAME})+/?"
+RE_SANE_PATH="${RE_SANE_PATH}|(${RE_SANE_FILENAME}/)+(${RE_SANE_FILENAME})?"
+RE_SANE_PATH="${RE_SANE_PATH}|\./(${RE_SANE_FILENAME}/)*(${RE_SANE_FILENAME})?"
+export SANE_PATH_REGEX='^('"$RE_SANE_PATH"')$'
+
+# Insane path REGEX
+#
+# WARNING: Use of path that are insane as the
+#	   potential to cause significant problems.
+#
+# Use Sane path REGEX instead.
+#
+# NOTE: path must be no longer than 4096 characters.
+#
+RE_INSANE_PATH=".+"
+export INSANE_PATH_REGEX='^'"$RE_INSANE_PATH"'$'
+
+# Sane username
+#
+# While technically many charachers could be used in a username,
+# some characters are not allowed in a URL or a password file.
+#
+# We limit the username length of 32 characters to conform
+# to typrical Un*x username limits.
+#
+RE_SANE_USERNAME='[A-Za-z][A-Za-z0-9._-]{0,31}'
+SANE_USERNAME_REGEX="^${RE_SANE_USERNAME}$"
+
+# Sane password
+#
+# While technically almost any character is good in a password,
+# some characters make it hard for those passwords to be used
+# in things such as URLs, or to be passed as shell variables.
+#
+# We disallow these dangerious characters in a password:
+#
+#	[[:space:]]%:@/#?
+#
+# We limit the password length of 32 characters just to
+# keep passwords from making a URL too long.
+#
+RE_SANE_PASSWORD='[^	 %:@/#?]{1,32}'
+SANE_PASSWORD_REGEX="^${RE_SANE_PASSWORD}$"
+
+# URL - Uniform Resource Locator
+#
+# Technically a URL is of the form:
+#
+#	scheme [: // [userinfo @] host [: port]] path [? quety] [# fragment]
+#
+# where [ .. ]] denotes something optional.
+#
+# We will insist that URLs contain a host so that a URL cannnot explicitly refer to a local file.
+# We will not prevent the host from referring to the local host, or one of its many aliases.
+# We will assume that the local host does not have a web server, or that web server is configured
+# with a document root that resides in a suitable directory.
+#
+# We insist our path must not be empty, therefore the path must at least contain a /.
+#
+# Therefore our URL will be:
+#
+#	Scheme : // [Userinfo @] Host [: Port] / Path [? Query] [# Fragment]
+#
+# Scheme (usually http, https, ftp, file, etc.) is: (we make this manditory)
+#
+#	sequence of characters beginning with a letter,
+#	   followed by any combination of letters, digits, plus (+), period (.), or hyphen (-)
+#
+# Userinfo is:
+#
+#	RE_SANE_USERNAME [: [RE_SANE_PASSWORD]]
+#
+# Host is:
+#
+#	RE_HOSTNAME or RE_IPV4 or '[' RE_IPV6 ']'	# <-- '[' and ']' are literal characters
+#
+# Port is:
+#
+#	RE_PORT
+#
+# Path is:
+#
+#	/ followed by zero of more of any chacters except: [[:space:]]%&@:#?
+#
+# Query is:
+#
+#	one or more characters excluding: [[:space:]]@:#
+#
+# Fragment is:
+#
+#	one or more characters excluding: [[:space:]]@:
+#
+RE_URL_SCHEME='([A-Za-z][A-Za-z0-9+.-]*)(://)'
+RE_URL_USERINFO="((${RE_SANE_USERNAME})((:)(${RE_SANE_PASSWORD}))?@)?"
+RE_URL_HOST="((${RE_HOSTNAME})|(${RE_IPV4})|(\[${RE_IPV6}\]))"
+RE_URL_PORTNUM="(([:])(${RE_PORT}))?"
+RE_URL_PATH='(/[^	 %@:#?]*)?'
+RE_URL_QUERY='([?][^	 #]*)?'
+RE_URL_FRAGMENT='(#[^	 ]*)?'
+RE_URL="${RE_URL_SCHEME}${RE_URL_USERINFO}${RE_URL_HOST}${RE_URL_PORTNUM}${RE_URL_PATH}${RE_URL_QUERY}${RE_URL_FRAGMENT}"
+export URL_REGEX="^($RE_URL)"'$'
+
+# We use NCHARS (MAXLEN+1) so that we can determine if the
+# input reached the original -m maxlen and reject it.
+# The shell will stop at maxlen+1 and we can reject
+# the input as being too long.
+#
+export NCHARS
+((NCHARS=MAXLEN+1))
+
+# Our ANSWER will be printed as a non-empty string to stdout,
+# if valid, in which case we wille exit 0.  Otherwise we will
+# print a empty line to stdout and exit non-zero.
+#
+export ANSWER=
+
+# promit and read
+#
+# We will prompt and read input, validating input,
+# and unless -o, repromt if input is invalid.
+#
+export RETRY=true
+export EXIT_CODE=0
+while [[ -n $RETRY ]]; do
+
+    # If -o, we will not retry if input is invalid.
+    #
+    if [[ -n $O_FLAG ]]; then
+	RETRY=
+    fi
+
+    # Clear any previously supplied ANSWER
+    #
+    ANSWER=
+    # Clean any previous exit code
+    #
+    EXIT_CODE=0
+
+    # prompt and read input
+    #
+    # We use -r so that \ on input is treated as a literal
+    # and to make it harder for system crackers to play games
+    # with input such as making it multi-line, attempting to
+    # escape critical characters, etc.
+    #
+    # The -e controls if we use READLINE facilities.
+    #
+    # The -t timeout can limit how long we wait for input.
+    # If we timeout, then the read status will be > 128.
+    #
+    if [[ -n $TIMEOUT ]]; then
+	if [[ -n $E_FLAG ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: debug: read -r -e -t $TIMEOUT -n $NCHARS -p \"$PROMPT \" ANSWER" 1>&2
+	    fi
+	    read -r -e -t "$TIMEOUT" -n "$NCHARS" -p "$PROMPT " ANSWER
+	    status=$?
+	else
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: debug: read -r -t $TIMEOUT -n $NCHARS -p \"$PROMPT \" ANSWER" 1>&2
+	    fi
+	    read -r -t "$TIMEOUT" -n "$NCHARS" -p "$PROMPT " ANSWER
+	    status=$?
+	fi
+    else
+	if [[ -n $E_FLAG ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: debug: read -r -e -n $NCHARS -p \"$PROMPT \" ANSWER" 1>&2
+	    fi
+	    read -r -e -n "$NCHARS" -p "$PROMPT " ANSWER
+	    status=$?
+	else
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: debug: read -r -n $NCHARS -p \"$PROMPT \" ANSWER" 1>&2
+	    fi
+	    read -r -n "$NCHARS" -p "$PROMPT " ANSWER
+	    status=$?
+	fi
+    fi
+
+    # reject if input is too long
+    #
+    if [[ ${#ANSWER} -gt $MAXLEN ]]; then
+	# Input length exceeded MAXLEN, so the terminal is still on the prompt/input line,
+	# so we print a newline on stderr to force any subsequent output (such
+	# as another prompt or debug message) onto the beginning of the next line.
+	#
+	echo 1>&2
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: Warning: input length ${#ANSWER} -ge maximum: $MAXLEN" 1>&2
+	fi
+
+	# clear answer
+	ANSWER=
+
+	# set exit code to "too long"
+	EXIT_CODE="$EXIT_TOOLONG" # exit 4
+
+	# retry or fail if -o
+	continue
+
+    # reject if timeout
+    #
+    elif [[ -n $TIMEOUT && ( $status -eq 142 || $status -eq 154 )  ]]; then
+	if [[ -n $V_FLAG ]]; then
+	    echo 1>&2
+	    echo "$PROG: Warning: timeout, exceeded $TIMEOUT seconds" 1>&2
+	fi
+
+	# clear answer
+	ANSWER=
+
+	# set exit code to "timeout"
+	EXIT_CODE="$EXIT_TIMEOUT" # exit 5
+
+	# retry or fail if -o
+	continue
+
+    # reject if read gets a signal
+    #
+    elif [[ $status -gt 128 && $status -le 192 ]]; then
+	((READ_SIGNAL="$status"-128))
+	if [[ -n $V_FLAG ]]; then
+	    echo 1>&2
+	    echo "$PROG: Warning: read signal: $READ_SIGNAL exit code: $status" 1>&2
+	fi
+
+	# clear answer
+	ANSWER=
+
+	# set exit code to "interrupt"
+	EXIT_CODE="$EXIT_INTERRUPT" # exit 5
+
+	# retry or fail if -o
+	continue
+
+    # reject on other read errors
+    #
+    elif [[ $status -ne 0 ]]; then
+	if [[ -n $V_FLAG ]]; then
+	    echo 1>&2
+	    echo "$PROG: Warning: read error, exit status: $status" 1>&2
+	fi
+
+	# clear answer
+	ANSWER=
+
+	# set exit code to "timeout"
+	EXIT_CODE="$EXIT_READERR" # exit 6
+
+	# retry or fail if -o
+	continue
+
+    # reject if empty input UNLESS TYPE of cr
+    #
+    elif [[ -z $ANSWER && $TYPE != "cr" ]]; then
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: Warning: non-cr type input is empty" 1>&2
+	fi
+
+	# clear answer
+	ANSWER=
+
+	# set exit code to "too long"
+	EXIT_CODE="$EXIT_EMPTY" # exit 7
+
+	# retry or fail if -o
+	continue
+    fi
+    if [[ -n $V_FLAG ]]; then
+	if [[ -z $ANSWER ]]; then
+	    echo "$PROG: debug: raw input with trailing newline removed is an empty string" 1>&2
+	else
+	    echo "$PROG: debug: raw input with trailing newline removed: $ANSWER" 1>&2
+	fi
+    fi
+
+    # input has not been rejected out of hand, we now check for input type
+    #
+    # For each type, if the input ($ANSWER) format is not valid, we will
+    # clear the input and set the EXIT_CODE.
+    #
+    case "$TYPE" in
+
+    natint)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: any integer > 0" 1>&2
+	fi
+	if [[ ! $ANSWER =~ ^[+]?[0-9]{1,}$ || $ANSWER -le 0 ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+    posint)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: integer >= 0" 1>&2
+	fi
+	if [[ ! $ANSWER =~ ^[+]?[0-9]{1,}$ || $ANSWER -lt 0 ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+    int)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: any integer" 1>&2
+	fi
+	if [[ ! $ANSWER =~ ^[+-]?[0-9]{1,}$ ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+    natreal)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: any real number > 0" 1>&2
+	fi
+	if [[ $ANSWER =~ ^$ || ! $ANSWER =~ ^[+]?[0-9]*([.][0-9]*)?$ || $ANSWER =~ ^0+([.]0*)?$ ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+    posreal)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: any real number >= 0" 1>&2
+	fi
+	if [[ $ANSWER =~ ^$ || ! $ANSWER =~ ^[+]?[0-9]*([.][0-9]*)?$ ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+    real)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: any real number" 1>&2
+	fi
+	if [[ $ANSWER =~ ^$ || ! $ANSWER =~ ^[+-]?[0-9]*([.][0-9]*)?$ ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+    string)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: any non-empty single line string, trailing newline removed" 1>&2
+	fi
+	if [[ -z $ANSWER ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+    yorn)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: y or n or Y or N or Yes or No or YES or NO" 1>&2
+	fi
+	case "$ANSWER" in
+	y|Y|yes|Yes|YES) ;;
+	n|N|no|No|NO) ;;
+	*)  if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	    ;;
+	esac
+	;;
+
+    cde)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: c or C or d or D or e or E" 1>&2
+	fi
+	case "$ANSWER" in
+	c|C) ;;
+	d|D) ;;
+	e|E) ;;
+	*)  if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	    ;;
+	esac
+	;;
+
+    ds)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: d or D or s or S" 1>&2
+	fi
+	case "$ANSWER" in
+	d|D) ;;
+	s|S) ;;
+	*)  if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	    ;;
+	esac
+	;;
+
+    ab)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: a or A or b or B" 1>&2
+	fi
+	case "$ANSWER" in
+	a|A) ;;
+	b|B) ;;
+	*)  if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	    ;;
+	esac
+	;;
+
+    fh)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: f or F or h or H" 1>&2
+	fi
+	case "$ANSWER" in
+	f|F) ;;
+	h|H) ;;
+	*)  if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	    ;;
+	esac
+	;;
+
+    v4v6)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: v4 or V4 or v6 or V6" 1>&2
+	fi
+	case "$ANSWER" in
+	v4|V4) ;;
+	v6|V6) ;;
+	*)  if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	    ;;
+	esac
+	;;
+
+    123)
+	if [[ -n $V_FLAG ]]; then
+	echo "$PROG: debug: type $TYPE validation: 1 or 2 or 3" 1>&2
+	fi
+	case "$ANSWER" in
+	1|2|3) ;;
+	*)  if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	    ;;
+	esac
+	;;
+
+    012)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: 0 or 1 or 2" 1>&2
+	fi
+	case "$ANSWER" in
+	0|1|2) ;;
+	*)  if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	    ;;
+	esac
+	;;
+
+    cr)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: just press return" 1>&2
+	fi
+	if [[ -n $ANSWER ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: expected just a return according to: $TYPE" 1>&2
+	    fi
+	    ANSWER='invalid' # make answer invalid
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+    ip4addr)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: IPv4 address" 1>&2
+	fi
+	if [[ ! $ANSWER =~ $IPV4ADDR_REGEX ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+    ip6addr)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: IPv6 address" 1>&2
+	fi
+	if [[ ! $ANSWER =~ $IPV6ADDR_REGEX ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+    ipaddr)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: IPv4 or IPv6 address" 1>&2
+	fi
+	if [[ ! $ANSWER =~ $IPV4ADDR_REGEX && ! $ANSWER =~ $IPV6ADDR_REGEX ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+   port)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: UDP or TCP port number (1-65535)" 1>&2
+	fi
+	if [[ ! $ANSWER =~ $PORT_REGEX || $ANSWER -lt 0 || $ANSWER -gt 65535 ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+   v4prefix)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: IPv4 /CIDR" 1>&2
+	fi
+	if [[ ! $ANSWER =~ $IPV4CIDR_REGEX ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+   v6prefix)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: IPv6 /CIDR" 1>&2
+	fi
+	if [[ ! $ANSWER =~ $IPV6CIDR_REGEX ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+    hostname)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: RFC-952 and RFC-1123 valid hostname" 1>&2
+	    if [[ $ANSWER =~ $HOSTNAME_REGEX ]]; then
+		echo "$PROG: debug: match debug" 1>&2
+	    else
+		echo "$PROG: debug: no match debug" 1>&2
+	    fi
+	    i=1
+	    n="${#BASH_REMATCH[*]}"
+	    echo "$PROG: debug: match count: $n" 1>&2
+	    echo "$PROG: debug: pattern[0]: ${BASH_REMATCH[0]}" 1>&2
+	    while [[ $i -lt $n ]]; do
+		echo "$PROG: debug: pattern[$i]: ${BASH_REMATCH[$i]}" 1>&2
+		((i++))
+	    done
+	    echo "$PROG: debug: end match debug" 1>&2
+	    if [[ ${#ANSWER} -gt 635 ]]; then
+		echo "$PROG: debug: too long: ${#ANSWER} -gt 635" 1>&2
+	    else
+		echo "$PROG: debug: length OK: ${#ANSWER} -le 635" 1>&2
+	    fi
+	fi
+	if [[ ! $ANSWER =~ $HOSTNAME_REGEX || ${#ANSWER} -gt 635 ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+    hostoripv4)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: RFC-952 and RFC-1123 valid hostname or IPv4 address" 1>&2
+	fi
+	if [[ ! $ANSWER =~ $HOSTNAME_REGEX && ${#ANSWER} -le 635 && ! $ANSWER =~ $IPV4ADDR_REGEX ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+    hostorip)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: RFC-952 and RFC-1123 valid hostname or IPv4 address or IPv6 address" 1>&2
+	fi
+	if [[ ! $ANSWER =~ $HOSTNAME_REGEX && ${#ANSWER} -le 635 &&
+	      ! $ANSWER =~ $IPV4ADDR_REGEX && ! $ANSWER =~ $IPV6ADDR_REGEX ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+    interface)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: eth followed by a digit or single letter" 1>&2
+	fi
+	if [[ ! $ANSWER =~ $INTERFACE_REGEX ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+    sane_filename)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: filename excluding unsafe filename characters" 1>&2
+	fi
+	if [[ ! $ANSWER =~ $SANE_FILENAME_REGEX && ${#ANSWER} -le 255 ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+    insane_filename)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: filename including unsafe filename characters" 1>&2
+	fi
+	if [[ ! $ANSWER =~ $INSANE_FILENAME_REGEX && ${#ANSWER} -le 255 ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+    sane_path)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: filename including unsafe filename characters" 1>&2
+	fi
+	if [[ ! $ANSWER =~ $SANE_PATH_REGEX || ${#ANSWER} -gt 255 ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+    insane_path)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: path including unsafe filename characters" 1>&2
+	fi
+	if [[ ! $ANSWER =~ $INSANE_PATH_REGEX || ${#ANSWER} -gt 4096 ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+    sane_username)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: username with only safe characters" 1>&2
+	fi
+	if [[ ! $ANSWER =~ $SANE_USERNAME_REGEX || ${#ANSWER} -gt 32 ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+    sane_password)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: password with only safe characters" 1>&2
+	fi
+	if [[ ! $ANSWER =~ $SANE_PASSWORD_REGEX || ${#ANSWER} -gt 32 ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+    sane_url)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: Uniform Resource Locator with sane restrictions" 1>&2
+	    if [[ $ANSWER =~ $URL_REGEX ]]; then
+		echo "$PROG: debug: match debug" 1>&2
+	    else
+		echo "$PROG: debug: no match debug" 1>&2
+	    fi
+	    i=1
+	    n="${#BASH_REMATCH[*]}"
+	    echo "$PROG: debug: match count: $n" 1>&2
+	    echo "$PROG: debug: pattern[0]: ${BASH_REMATCH[0]}" 1>&2
+	    while [[ $i -lt $n ]]; do
+		echo "$PROG: debug: pattern[$i]: ${BASH_REMATCH[$i]}" 1>&2
+		((i++))
+	    done
+	    echo "$PROG: debug: end match debug" 1>&2
+	fi
+	if [[ ! $ANSWER =~ $URL_REGEX ]]; then
+	    if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	fi
+	;;
+
+    trans_mode_0)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: file, http, https, ftp plus Caps and ALL CAPS" 1>&2
+	fi
+	case "$ANSWER" in
+	file|File|FILE) ;;
+	http|Http|HTTP) ;;
+	https|Https|HTTPS) ;;
+	ftp|Ftp|FTP) ;;
+	*)  if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	    ;;
+	esac
+	;;
+
+    trans_mode_1)
+	if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: debug: type $TYPE validation: scp, sftp, ftp plus Caps and ALL CAPS" 1>&2
+	fi
+	case "$ANSWER" in
+	scp|Scp|SCP) ;;
+	sftp|Sftp|SFTP) ;;
+	ftp|Ftp|FTP) ;;
+	*)  if [[ -n $V_FLAG ]]; then
+		echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+	    fi
+	    ANSWER= # clear answer
+	    EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+	    ;;
+	esac
+	;;
+
+    # should never get here
+    *)  if [[ -n $V_FLAG ]]; then
+	    echo "$PROG: unknown type: $TYPE" 1>&2
+	fi
+	echo # print empty stdout to indicate error
+	# This exit is an exception to the normal case.
+	# We normally would have checked the type when we
+	# parsed arguments.  To avoid having two type checks,
+	# we do a delayed usage check here and exit as if
+	# the command line was invalid.
+	exit "$EXIT_USAGE" # exit 3
+	;;
+
+    esac
+
+    # Determine if we need to retry, and if we do,
+    # if we need to issue an error message.
+    #
+    case "$TYPE" in
+    cr) if [[ -z $ANSWER ]]; then
+	    # we do not need to retry
+	    RETRY=
+	elif [[ -n $ERRMSG ]]; then
+	    echo "$ERRMSG" 1>&2
+	fi
+	;;
+    *)  if [[ -n $ANSWER ]]; then
+	    # we do not need to retry
+	    RETRY=
+	elif [[ -n $ERRMSG ]]; then
+	    echo "$ERRMSG" 1>&2
+	fi
+	;;
+    esac
+done
+
+# For cr TYPE, empty answer is returned as a space
+#
+if [[ $TYPE = cr && -z $ANSWER ]]; then
+    ANSWER=' '
+fi
+
+# output the answer to stdout
+#
+# In the case of an error, this will be an empty line.
+#
+if [[ -n $V_FLAG && $EXIT_CODE -ne 0 ]]; then
+    echo "$PROG: Warning: about to exit non-zero: $EXIT_CODE" 1>&2
+fi
+echo "$ANSWER"
+
+# All Done!!! -- Jessica Noll, Age 2
+#
+# exit according to the exit code previously set
+#
+exit "$EXIT_CODE"
