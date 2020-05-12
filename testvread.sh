@@ -46,17 +46,20 @@
 # No additional restrictions — You may not apply legal terms or
 # technological measures that legally restrict others from doing anything
 # the license permits.
+#
+# Share and enjoy! :-)
 
 # setup
 #
-export VERSION="4.1.1-20200217"
+export VERSION="4.4-20200512"
 export V_FLAG=
 export VREAD=
-export EXIT_BADTEST=1
-export EXIT_MISSING=2
-export EXIT_USAGE=3
-export EXIT_NOTAFILE=4
-export EXIT_NOTEXECUTABLE=5
+export EXIT_BADTEST="1"
+export EXIT_MISSING="2"
+export EXIT_CANON="3"
+export EXIT_USAGE="4"
+export EXIT_NOTAFILE="5"
+export EXIT_NOTEXECUTABLE="6"
 export PROG="$0"
 export USAGE="usage:
 
@@ -76,39 +79,46 @@ while getopts :hvoem:t: flag; do
     # validate flag
     #
     case "$flag" in
-    h)  echo "$USAGE" 1>&2
-	echo # empty stdout to indicate error
-	exit "$EXIT_USAGE" # exit 3
-	;;
-    v)  V_FLAG="true"
-	;;
-    \?) echo "$PROG: invalid option: -$OPTARG" 1>&2
-	echo "$USAGE" 1>&2
-	echo # empty stdout to indicate error
-	exit "$EXIT_USAGE" # exit 3
-	;;
-    :)  echo "$PROG: option -$OPTARG requires an argument" 1>&2
-	echo "$USAGE" 1>&2
-	echo # empty stdout to indicate error
-	exit "$EXIT_USAGE" # exit 3
-	;;
-    *)  echo "$PROG: unexpected return from getopts: $flag" 1>&2
-	echo "$USAGE" 1>&2
-	echo # empty stdout to indicate error
-	exit "$EXIT_USAGE" # exit 3
-	;;
-esac
+    h)
+        echo "$USAGE" 1>&2
+        echo               # empty stdout to indicate error
+        exit "$EXIT_USAGE" # exit 4
+        ;;
+    v)
+        V_FLAG="true"
+        ;;
+    \?)
+        echo "$PROG: invalid option: -$OPTARG" 1>&2
+        echo "$USAGE" 1>&2
+        echo               # empty stdout to indicate error
+        exit "$EXIT_USAGE" # exit 4
+        ;;
+    :)
+        echo "$PROG: option -$OPTARG requires an argument" 1>&2
+        echo "$USAGE" 1>&2
+        echo               # empty stdout to indicate error
+        exit "$EXIT_USAGE" # exit 4
+        ;;
+    *)
+        echo "$PROG: unexpected return from getopts: $flag" 1>&2
+        echo "$USAGE" 1>&2
+        echo               # empty stdout to indicate error
+        exit "$EXIT_USAGE" # exit 4
+        ;;
+    esac
 done
-shift $(( OPTIND - 1 ));
+shift $((OPTIND - 1))
 #
 # parse the 2 or 3 option args
 #
 case "$#" in
-1) VREAD="$1"
-   ;;
-*)  echo "$PROG: must have 1 arg" 1>&2
+1)
+    VREAD="$1"
+    ;;
+*)
+    echo "$PROG: must have 1 arg" 1>&2
     echo "$USAGE" 1>&2
-    exit "$EXIT_USAGE" # exit 3
+    exit "$EXIT_USAGE" # exit 4
     ;;
 esac
 #
@@ -126,10 +136,10 @@ if [[ ! -e $VREAD ]]; then
     exit "$EXIT_MISSING" # exit 2
 elif [[ ! -f $VREAD ]]; then
     echo "$PROG: FATAL: vread executable not a file: $VREAD" 1>&2
-    exit "$EXIT_NOTAFILE" # exit 4
+    exit "$EXIT_NOTAFILE" # exit 5
 elif [[ ! -x $VREAD ]]; then
     echo "$PROG: FATAL: vread executable not executable: $VREAD" 1>&2
-    exit "$EXIT_NOTEXECUTABLE" # exit 5
+    exit "$EXIT_NOTEXECUTABLE" # exit 6
 fi
 if [[ -n $V_FLAG ]]; then
     echo "$PROG: debug: vread executable: $VREAD" 1>&2
@@ -141,9 +151,9 @@ valid_input_test() {
     # parse args
     #
     if [[ $# -ne 2 ]]; then
-	echo "$PROG: usage: valid_input_test input type" 1>&2
-	echo "$PROG: ERROR: found $# args" 1>&2
-	exit 2
+        echo "$PROG: usage: valid_input_test input type" 1>&2
+        echo "$PROG: ERROR: found $# args" 1>&2
+        exit 2
     fi
     INPUT="$1"
     TYPE="$2"
@@ -151,22 +161,62 @@ valid_input_test() {
     # give input to vread once
     #
     if [[ -n $V_FLAG ]]; then
-	echo "$PROG: debug: valid_input_test $*" 1>&2
+        echo "$PROG: debug: valid_input_test $*" 1>&2
     fi
     ANSWER=$(echo "$INPUT" | "$VREAD" -e -o "$TYPE" prompt)
     status="$?"
-    if [[ $TYPE = cr && $ANSWER = ' ' ]]; then
-	ANSWER=''
+    if [[ $TYPE == cr && $ANSWER == ' ' ]]; then
+        ANSWER=''
     fi
 
     # check for unexpected vread error
     #
     if [[ $status -ne 0 ]]; then
-	echo "$PROG: ERROR: FAIL: valid_input_test $*" 1>&2
-	echo "$PROG: ERROR: non-zero exit status: $status" 1>&2
-	exit "$EXIT_BADTEST" # exit 1
+        echo "$PROG: ERROR: FAIL: valid_input_test $*" 1>&2
+        echo "$PROG: ERROR: non-zero exit status: $status" 1>&2
+        exit "$EXIT_BADTEST" # exit 1
     elif [[ -n $V_FLAG ]]; then
-	echo "$PROG: debug: pass" 1>&2
+        echo "$PROG: debug: pass" 1>&2
+    fi
+}
+
+# test for valid input put into canonical form
+#
+valid_canon_input_test() {
+    # parse args
+    #
+    if [[ $# -ne 3 ]]; then
+        echo "$PROG: usage: valid_canon_input_test input type canon_input" 1>&2
+        echo "$PROG: ERROR: found $# args" 1>&2
+        exit 2
+    fi
+    INPUT="$1"
+    TYPE="$2"
+    CANON="$3"
+
+    # give input to vread once
+    #
+    if [[ -n $V_FLAG ]]; then
+        echo "$PROG: debug: valid_canon_input_test $*" 1>&2
+    fi
+    ANSWER=$(echo "$INPUT" | "$VREAD" -c -e -o "$TYPE" prompt)
+    status="$?"
+    if [[ $TYPE == cr && $ANSWER == ' ' ]]; then
+        ANSWER=''
+    fi
+
+    # check for unexpected vread error
+    #
+    if [[ $status -ne 0 ]]; then
+        echo "$PROG: ERROR: FAIL: valid_canon_input_test $*" 1>&2
+        echo "$PROG: ERROR: non-zero exit status: $status" 1>&2
+        exit "$EXIT_BADTEST" # exit 1
+    elif [[ $ANSWER != "$CANON" ]]; then
+        echo "$PROG: ERROR: FAIL: valid_canon_input_test $*" 1>&2
+        echo "$PROG: ERROR: ANSWER: $ANSWER != CANON: $CANON" 1>&2
+        exit "$EXIT_CANON" # exit 3
+    elif [[ -n $V_FLAG ]]; then
+        echo "$PROG: debug: pass" 1>&2
     fi
 }
 
@@ -176,9 +226,9 @@ valid_length_input_test() {
     # parse args
     #
     if [[ $# -ne 3 ]]; then
-	echo "$PROG: usage: valid_length_input_test type maxlen" 1>&2
-	echo "$PROG: ERROR: found $# args" 1>&2
-	exit 2
+        echo "$PROG: usage: valid_length_input_test type maxlen" 1>&2
+        echo "$PROG: ERROR: found $# args" 1>&2
+        exit 2
     fi
     INPUT="$1"
     TYPE="$2"
@@ -187,22 +237,22 @@ valid_length_input_test() {
     # give input to vread once
     #
     if [[ -n $V_FLAG ]]; then
-	echo "$PROG: debug: valid_length_input_test $*" 1>&2
+        echo "$PROG: debug: valid_length_input_test $*" 1>&2
     fi
     ANSWER=$(echo "$INPUT" | "$VREAD" -e -o -m "$MAXLEN" "$TYPE" prompt 2>/dev/null)
     status="$?"
-    if [[ $TYPE = cr && $ANSWER = ' ' ]]; then
-	ANSWER=''
+    if [[ $TYPE == cr && $ANSWER == ' ' ]]; then
+        ANSWER=''
     fi
 
     # check for unexpected vread error
     #
     if [[ $status -ne 0 ]]; then
-	echo "$PROG: ERROR: FAIL: valid_length_input_test $*" 1>&2
-	echo "$PROG: ERROR: non-zero exit status: $status" 1>&2
-	exit "$EXIT_BADTEST" # exit 1
+        echo "$PROG: ERROR: FAIL: valid_length_input_test $*" 1>&2
+        echo "$PROG: ERROR: non-zero exit status: $status" 1>&2
+        exit "$EXIT_BADTEST" # exit 1
     elif [[ -n $V_FLAG ]]; then
-	echo "$PROG: debug: pass" 1>&2
+        echo "$PROG: debug: pass" 1>&2
     fi
 }
 
@@ -212,9 +262,9 @@ invalid_input_test() {
     # parse args
     #
     if [[ $# -ne 3 ]]; then
-	echo "$PROG: usage: invalid_input_test type expected_exitcode" 1>&2
-	echo "$PROG: ERROR: found $# args" 1>&2
-	exit 2
+        echo "$PROG: usage: invalid_input_test input type expected_exitcode" 1>&2
+        echo "$PROG: ERROR: found $# args" 1>&2
+        exit 2
     fi
     INPUT="$1"
     TYPE="$2"
@@ -223,7 +273,7 @@ invalid_input_test() {
     # give input to vread once
     #
     if [[ -n $V_FLAG ]]; then
-	echo "$PROG: debug: invalid_input_test $*" 1>&2
+        echo "$PROG: debug: invalid_input_test $*" 1>&2
     fi
     ANSWER=$(echo "$INPUT" | "$VREAD" -e -o "$TYPE" prompt)
     status="$?"
@@ -231,15 +281,15 @@ invalid_input_test() {
     # check for unexpected vread error
     #
     if [[ $status -eq 0 ]]; then
-	echo "$PROG: ERROR: FAIL: invalid_input_test $*" 1>&2
-	echo "$PROG: ERROR: test failed to fail" 1>&2
-	exit "$EXIT_BADTEST" # exit 1
+        echo "$PROG: ERROR: FAIL: invalid_input_test $*" 1>&2
+        echo "$PROG: ERROR: test failed to fail" 1>&2
+        exit "$EXIT_BADTEST" # exit 1
     elif [[ $status -ne $EXPECTED_CODE ]]; then
-	echo "$PROG: ERROR: FAIL: invalid_input_test $*" 1>&2
-	echo "$PROG: ERROR: expected test to exit: $EXPECTED_CODE found: $status" 1>&2
-	exit "$EXIT_BADTEST" # exit 1
+        echo "$PROG: ERROR: FAIL: invalid_input_test $*" 1>&2
+        echo "$PROG: ERROR: expected test to exit: $EXPECTED_CODE found: $status" 1>&2
+        exit "$EXIT_BADTEST" # exit 1
     elif [[ -n $V_FLAG ]]; then
-	echo "$PROG: debug: pass" 1>&2
+        echo "$PROG: debug: pass" 1>&2
     fi
 }
 
@@ -249,9 +299,9 @@ invalid_length_input_test() {
     # parse args
     #
     if [[ $# -ne 4 ]]; then
-	echo "$PROG: usage: invalid_length_input_test type expected_exitcode maxlen" 1>&2
-	echo "$PROG: ERROR: found $# args" 1>&2
-	exit 2
+        echo "$PROG: usage: invalid_length_input_test input type expected_exitcode maxlen" 1>&2
+        echo "$PROG: ERROR: found $# args" 1>&2
+        exit 2
     fi
     INPUT="$1"
     TYPE="$2"
@@ -261,26 +311,150 @@ invalid_length_input_test() {
     # give input to vread once
     #
     if [[ -n $V_FLAG ]]; then
-	echo "$PROG: debug: invalid_length_input_test $*" 1>&2
+        echo "$PROG: debug: invalid_length_input_test $*" 1>&2
     fi
     ANSWER=$(echo "$INPUT" | "$VREAD" -e -o -m "$MAXLEN" "$TYPE" prompt 2>/dev/null)
     status="$?"
-    if [[ $TYPE = cr && $ANSWER = ' ' ]]; then
-	ANSWER=''
+    if [[ $TYPE == cr && $ANSWER == ' ' ]]; then
+        ANSWER=''
     fi
 
     # check for unexpected vread error
     #
     if [[ $status -eq 0 ]]; then
-	echo "$PROG: ERROR: FAIL: invalid_length_input_test $*" 1>&2
-	echo "$PROG: ERROR: test failed to fail" 1>&2
-	exit "$EXIT_BADTEST" # exit 1
+        echo "$PROG: ERROR: FAIL: invalid_length_input_test $*" 1>&2
+        echo "$PROG: ERROR: test failed to fail" 1>&2
+        exit "$EXIT_BADTEST" # exit 1
     elif [[ $status -ne $EXPECTED_CODE ]]; then
-	echo "$PROG: ERROR: FAIL: invalid_length_input_test $*" 1>&2
-	echo "$PROG: ERROR: expected test to exit: $EXPECTED_CODE found: $status" 1>&2
-	exit "$EXIT_BADTEST" # exit 1
+        echo "$PROG: ERROR: FAIL: invalid_length_input_test $*" 1>&2
+        echo "$PROG: ERROR: expected test to exit: $EXPECTED_CODE found: $status" 1>&2
+        exit "$EXIT_BADTEST" # exit 1
     elif [[ -n $V_FLAG ]]; then
-	echo "$PROG: debug: pass" 1>&2
+        echo "$PROG: debug: pass" 1>&2
+    fi
+}
+
+# test for valid input that is varified
+#
+valid_verified_input_test() {
+    # parse args
+    #
+    if [[ $# -ne 3 ]]; then
+        echo "$PROG: usage: valid_verified_input_test input verified_input type" 1>&2
+        echo "$PROG: ERROR: found $# args" 1>&2
+        exit 2
+    fi
+    INPUT="$1"
+    VERIFIED_INPUT="$2"
+    TYPE="$3"
+
+    # give input to vread once
+    #
+    if [[ -n $V_FLAG ]]; then
+        echo "$PROG: debug: valid_verified_input_test $*" 1>&2
+    fi
+    ANSWER=$( (
+        echo "$INPUT"
+        echo "$VERIFIED_INPUT"
+    ) | "$VREAD" -r verify -e -o "$TYPE" prompt)
+    status="$?"
+    if [[ $TYPE == cr && $ANSWER == ' ' ]]; then
+        ANSWER=''
+    fi
+
+    # check for unexpected vread error
+    #
+    if [[ $status -ne 0 ]]; then
+        echo "$PROG: ERROR: FAIL: valid_verified_input_test $*" 1>&2
+        echo "$PROG: ERROR: non-zero exit status: $status" 1>&2
+        exit "$EXIT_BADTEST" # exit 1
+    elif [[ -n $V_FLAG ]]; then
+        echo "$PROG: debug: pass" 1>&2
+    fi
+}
+
+# test for invalid input that is verified
+#
+invalid_verified_input_test() {
+    # parse args
+    #
+    if [[ $# -ne 4 ]]; then
+        echo "$PROG: usage: invalid_verified_input_test input verified_input type expected_exitcode" 1>&2
+        echo "$PROG: ERROR: found $# args" 1>&2
+        exit 2
+    fi
+    INPUT="$1"
+    VERIFIED_INPUT="$2"
+    TYPE="$3"
+    EXPECTED_CODE="$4"
+
+    # give input to vread once
+    #
+    if [[ -n $V_FLAG ]]; then
+        echo "$PROG: debug: invalid_verified_input_test $*" 1>&2
+    fi
+    ANSWER=$( (
+        echo "$INPUT"
+        echo "$VERIFIED_INPUT"
+    ) | "$VREAD" -r verify -e -o "$TYPE" prompt)
+    status="$?"
+
+    # check for unexpected vread error
+    #
+    if [[ $status -eq 0 ]]; then
+        echo "$PROG: ERROR: FAIL: invalid_verified_input_test $*" 1>&2
+        echo "$PROG: ERROR: test failed to fail" 1>&2
+        exit "$EXIT_BADTEST" # exit 1
+    elif [[ $status -ne $EXPECTED_CODE ]]; then
+        echo "$PROG: ERROR: FAIL: invalid_verified_input_test $*" 1>&2
+        echo "$PROG: ERROR: expected test to exit: $EXPECTED_CODE found: $status" 1>&2
+        exit "$EXIT_BADTEST" # exit 1
+    elif [[ -n $V_FLAG ]]; then
+        echo "$PROG: debug: pass" 1>&2
+    fi
+}
+
+# test for valid input put into canonical form for input that is verified
+#
+valid_verified_canon_input_test() {
+    # parse args
+    #
+    if [[ $# -ne 4 ]]; then
+        echo "$PROG: usage: valid_verified_canon_input_test input verified_input type canon_input" 1>&2
+        echo "$PROG: ERROR: found $# args" 1>&2
+        exit 2
+    fi
+    INPUT="$1"
+    VERIFIED_INPUT="$2"
+    TYPE="$3"
+    CANON="$4"
+
+    # give input to vread once
+    #
+    if [[ -n $V_FLAG ]]; then
+        echo "$PROG: debug: valid_verified_canon_input_test $*" 1>&2
+    fi
+    ANSWER=$( (
+        echo "$INPUT"
+        echo "$VERIFIED_INPUT"
+    ) | "$VREAD" -r verify -c -e -o "$TYPE" prompt)
+    status="$?"
+    if [[ $TYPE == cr && $ANSWER == ' ' ]]; then
+        ANSWER=''
+    fi
+
+    # check for unexpected vread error
+    #
+    if [[ $status -ne 0 ]]; then
+        echo "$PROG: ERROR: FAIL: valid_verified_canon_input_test $*" 1>&2
+        echo "$PROG: ERROR: non-zero exit status: $status" 1>&2
+        exit "$EXIT_BADTEST" # exit 1
+    elif [[ $ANSWER != "$CANON" ]]; then
+        echo "$PROG: ERROR: FAIL: valid_verified_canon_input_test $*" 1>&2
+        echo "$PROG: ERROR: ANSWER: $ANSWER != CANON: $CANON" 1>&2
+        exit "$EXIT_CANON" # exit 3
+    elif [[ -n $V_FLAG ]]; then
+        echo "$PROG: debug: pass" 1>&2
     fi
 }
 
@@ -440,6 +614,12 @@ valid_input_test '.23' string
 valid_input_test '-1.' string
 valid_input_test '-1.234' string
 valid_input_test '-.234' string
+valid_verified_input_test 'hello, world' 'hello, world' string
+valid_verified_input_test 'abc123' 'abc123' string
+invalid_verified_input_test 'hello, world' 'hello, world!' string 6
+invalid_verified_input_test 'abc123' 'def456' string 6
+valid_verified_canon_input_test 'fizzbin' 'fizzbin' string 'fizzbin'
+valid_verified_canon_input_test 'a good string' 'a good string' string 'a good string'
 #
 valid_length_input_test abcdef string 6
 valid_length_input_test abcdef string 7
@@ -487,6 +667,15 @@ invalid_input_test 'V5' yorn 1
 invalid_input_test 'v6' yorn 1
 invalid_input_test 'V6' yorn 1
 invalid_input_test '' yorn 7
+valid_verified_canon_input_test 'y' 'y' yorn 'y'
+valid_verified_canon_input_test 'y' 'Y' yorn 'y'
+valid_verified_canon_input_test 'n' 'n' yorn 'n'
+valid_verified_canon_input_test 'n' 'N' yorn 'n'
+#
+valid_canon_input_test 'y' yorn 'y'
+valid_canon_input_test 'Y' yorn 'y'
+valid_canon_input_test 'n' yorn 'n'
+valid_canon_input_test 'N' yorn 'n'
 #
 invalid_input_test 'y' cde 1
 invalid_input_test 'Y' cde 1
@@ -531,6 +720,13 @@ invalid_input_test 'v6' cde 1
 invalid_input_test 'V6' cde 1
 invalid_input_test '' cde 7
 #
+valid_canon_input_test 'c' cde 'c'
+valid_canon_input_test 'C' cde 'c'
+valid_canon_input_test 'd' cde 'd'
+valid_canon_input_test 'D' cde 'd'
+valid_canon_input_test 'e' cde 'e'
+valid_canon_input_test 'E' cde 'e'
+#
 invalid_input_test 'y' ds 1
 invalid_input_test 'Y' ds 1
 invalid_input_test 'n' ds 1
@@ -573,6 +769,11 @@ invalid_input_test 'V5' ds 1
 invalid_input_test 'v6' ds 1
 invalid_input_test 'V6' ds 1
 invalid_input_test '' ds 7
+#
+valid_canon_input_test 'd' ds 'd'
+valid_canon_input_test 'D' ds 'd'
+valid_canon_input_test 's' ds 's'
+valid_canon_input_test 'S' ds 's'
 #
 invalid_input_test 'y' ab 1
 invalid_input_test 'Y' ab 1
@@ -617,6 +818,11 @@ invalid_input_test 'v6' ab 1
 invalid_input_test 'V6' ab 1
 invalid_input_test '' ab 7
 #
+valid_canon_input_test 'a' ab 'a'
+valid_canon_input_test 'A' ab 'a'
+valid_canon_input_test 'b' ab 'b'
+valid_canon_input_test 'B' ab 'b'
+#
 invalid_input_test 'y' fh 1
 invalid_input_test 'Y' fh 1
 invalid_input_test 'n' fh 1
@@ -659,6 +865,11 @@ invalid_input_test 'V5' fh 1
 invalid_input_test 'v6' fh 1
 invalid_input_test 'V6' fh 1
 invalid_input_test '' fh 7
+#
+valid_canon_input_test 'f' fh 'f'
+valid_canon_input_test 'F' fh 'f'
+valid_canon_input_test 'h' fh 'h'
+valid_canon_input_test 'H' fh 'h'
 #
 invalid_input_test 'y' v4v6 1
 invalid_input_test 'Y' v4v6 1
@@ -703,6 +914,11 @@ valid_input_test 'v6' v4v6
 valid_input_test 'V6' v4v6
 invalid_input_test '' v4v6 7
 #
+valid_canon_input_test 'v4' v4v6 'v4'
+valid_canon_input_test 'V4' v4v6 'v4'
+valid_canon_input_test 'v6' v4v6 'v6'
+valid_canon_input_test 'V6' v4v6 'v6'
+#
 invalid_input_test 'y' 123 1
 invalid_input_test 'Y' 123 1
 invalid_input_test 'n' 123 1
@@ -746,6 +962,10 @@ invalid_input_test 'v6' 123 1
 invalid_input_test 'V6' 123 1
 invalid_input_test '' 123 7
 #
+valid_canon_input_test '1' 123 '1'
+valid_canon_input_test '2' 123 '2'
+valid_canon_input_test '3' 123 '3'
+#
 invalid_input_test 'y' 012 1
 invalid_input_test 'Y' 012 1
 invalid_input_test 'n' 012 1
@@ -788,6 +1008,10 @@ invalid_input_test 'V5' 012 1
 invalid_input_test 'v6' 012 1
 invalid_input_test 'V6' 012 1
 invalid_input_test '' 012 7
+#
+valid_canon_input_test '0' 012 '0'
+valid_canon_input_test '1' 012 '1'
+valid_canon_input_test '2' 012 '2'
 #
 invalid_input_test 'y' cr 1
 invalid_input_test 'Y' cr 1
@@ -1393,7 +1617,9 @@ valid_input_test '1abc' sane_filename
 valid_input_test 'abc1' sane_filename
 valid_input_test 'curds_n_whey.txt' sane_filename
 valid_input_test 'a.b.c' sane_filename
-invalid_input_test "foo\$bar" sane_filename 1
+# SC2016: Expressions don't expand in single quotes, use double quotes for that.
+# shellcheck disable=SC2016
+invalid_input_test 'foo$bar' sane_filename 1
 invalid_input_test '~root' sane_filename 1
 invalid_input_test 'foo bar' sane_filename 1
 invalid_input_test 'foo*bar' sane_filename 1
@@ -1427,7 +1653,9 @@ valid_input_test '1abc' insane_filename
 valid_input_test 'abc1' insane_filename
 valid_input_test 'curds_n_whey.txt' insane_filename
 valid_input_test 'a.b.c' insane_filename
-valid_input_test "foo\$bar" insane_filename
+# SC2016: Expressions don't expand in single quotes, use double quotes for that.
+# shellcheck disable=SC2016
+valid_input_test 'foo$bar' insane_filename
 valid_input_test '~root' insane_filename
 valid_input_test 'foo bar' insane_filename
 valid_input_test 'foo*bar' insane_filename
@@ -1461,7 +1689,9 @@ valid_input_test '1abc' sane_path
 valid_input_test 'abc1' sane_path
 valid_input_test 'curds_n_whey.txt' sane_path
 valid_input_test 'a.b.c' sane_path
-invalid_input_test "foo\$bar" sane_path 1
+# SC2016: Expressions don't expand in single quotes, use double quotes for that.
+# shellcheck disable=SC2016
+invalid_input_test 'foo$bar' sane_path 1
 invalid_input_test '~root' sane_path 1
 invalid_input_test 'foo bar' sane_path 1
 invalid_input_test 'foo*bar' sane_path 1
@@ -1495,7 +1725,9 @@ valid_input_test '1abc' insane_path
 valid_input_test 'abc1' insane_path
 valid_input_test 'curds_n_whey.txt' insane_path
 valid_input_test 'a.b.c' insane_path
-valid_input_test "foo\$bar" insane_path
+# SC2016: Expressions don't expand in single quotes, use double quotes for that.
+# shellcheck disable=SC2016
+valid_input_test 'foo$bar' insane_path
 valid_input_test '~root' insane_path
 valid_input_test 'foo bar' insane_path
 valid_input_test 'foo*bar' insane_path
@@ -1523,6 +1755,7 @@ valid_input_test '../../foo' insane_path
 valid_input_test '.' insane_path
 valid_input_test '..' insane_path
 #
+invalid_input_test '' sane_username 7
 valid_input_test 'a' sane_username
 valid_input_test 'chongo' sane_username
 valid_input_test 'user123' sane_username
@@ -1539,6 +1772,24 @@ invalid_input_test '55' sane_username 1
 invalid_input_test '-root' sane_username 1
 invalid_input_test '_user-user' sane_username 1
 #
+invalid_input_test '' insane_username 7
+valid_input_test 'a' insane_username
+valid_input_test 'chongo' insane_username
+valid_input_test 'user123' insane_username
+valid_input_test 'user-123' insane_username
+valid_input_test 'user_123' insane_username
+valid_input_test 'user.123' insane_username
+valid_input_test 'user123.' insane_username
+valid_input_test 'user123_' insane_username
+valid_input_test 'user123-' insane_username
+valid_input_test 'abcdefghijklmnopqrstuvwxyz' insane_username
+valid_input_test 'abcdefghijklmnopqrstuvwxyz012345' insane_username
+valid_input_test 'abcdefghijklmnopqrstuvwxyz0123456' insane_username
+valid_input_test '55' insane_username
+valid_input_test '-root' insane_username
+valid_input_test '_user-user' insane_username
+#
+invalid_input_test '' sane_password 7
 valid_input_test 'a' sane_password
 valid_input_test 'chongo' sane_password
 valid_input_test 'user123' sane_password
@@ -1560,6 +1811,35 @@ invalid_input_test 'pass@word' sane_password 1
 invalid_input_test 'pass#word' sane_password 1
 invalid_input_test 'password?' sane_password 1
 invalid_input_test '_user%user' sane_password 1
+valid_verified_input_test 'password' 'password' sane_password
+valid_verified_input_test 'abc123' 'abc123' sane_password
+invalid_verified_input_test 'password' 'Password' sane_password 6
+invalid_verified_input_test 'abc123' 'def456' sane_password 6
+valid_verified_canon_input_test 'fizzbin' 'fizzbin' sane_password 'fizzbin'
+valid_verified_canon_input_test 'a-good-string' 'a-good-string' sane_password 'a-good-string'
+#
+invalid_input_test '' insane_password 7
+valid_input_test 'a' insane_password
+valid_input_test 'chongo' insane_password
+valid_input_test 'user123' insane_password
+valid_input_test 'user-123' insane_password
+valid_input_test 'user_123' insane_password
+valid_input_test 'user.123' insane_password
+valid_input_test 'user123.' insane_password
+valid_input_test 'user123_' insane_password
+valid_input_test 'user123-' insane_password
+valid_input_test 'abcdefghijklmnopqrstuvwxyz' insane_password
+valid_input_test 'abcdefghijklmnopqrstuvwxyz012345' insane_password
+valid_input_test 'abcdefghijklmnopqrstuvwxyz0123456' insane_password
+valid_input_test '55' insane_password
+valid_input_test '-root' insane_password
+valid_input_test '_user-user' insane_password
+valid_input_test 'pass:word' insane_password
+valid_input_test 'pass/word' insane_password
+valid_input_test 'pass@word' insane_password
+valid_input_test 'pass#word' insane_password
+valid_input_test 'password?' insane_password
+valid_input_test '_user%user' insane_password
 #
 valid_input_test 'http://foo.com' sane_url
 valid_input_test 'http://142.42.1.1' sane_url
@@ -1680,6 +1960,19 @@ invalid_input_test 'FTp' trans_mode_0 1
 invalid_input_test '123' trans_mode_0 1
 invalid_input_test '+' trans_mode_0 1
 #
+valid_canon_input_test 'file' trans_mode_0 'file'
+valid_canon_input_test 'File' trans_mode_0 'file'
+valid_canon_input_test 'FILE' trans_mode_0 'file'
+valid_canon_input_test 'http' trans_mode_0 'http'
+valid_canon_input_test 'Http' trans_mode_0 'http'
+valid_canon_input_test 'HTTP' trans_mode_0 'http'
+valid_canon_input_test 'https' trans_mode_0 'https'
+valid_canon_input_test 'Https' trans_mode_0 'https'
+valid_canon_input_test 'HTTPS' trans_mode_0 'https'
+valid_canon_input_test 'ftp' trans_mode_0 'ftp'
+valid_canon_input_test 'Ftp' trans_mode_0 'ftp'
+valid_canon_input_test 'FTP' trans_mode_0 'ftp'
+#
 invalid_input_test 'file' trans_mode_1 1
 invalid_input_test 'http' trans_mode_1 1
 invalid_input_test 'https' trans_mode_1 1
@@ -1709,6 +2002,16 @@ invalid_input_test 'HTtps' trans_mode_1 1
 invalid_input_test 'FTp' trans_mode_1 1
 invalid_input_test '123' trans_mode_1 1
 invalid_input_test '+' trans_mode_1 1
+#
+valid_canon_input_test 'ftp' trans_mode_1 'ftp'
+valid_canon_input_test 'Ftp' trans_mode_1 'ftp'
+valid_canon_input_test 'FTP' trans_mode_1 'ftp'
+valid_canon_input_test 'scp' trans_mode_1 'scp'
+valid_canon_input_test 'Scp' trans_mode_1 'scp'
+valid_canon_input_test 'SCP' trans_mode_1 'scp'
+valid_canon_input_test 'sftp' trans_mode_1 'sftp'
+valid_canon_input_test 'Sftp' trans_mode_1 'sftp'
+valid_canon_input_test 'SFTP' trans_mode_1 'sftp'
 
 # All Done!!! -- Jessica Noll, Age 2
 #
