@@ -37,8 +37,6 @@
 
 
 SHELL= /bin/bash
-CC= cc
-CFLAGS= -O3 -g3
 RM= rm
 CP= cp
 CHMOD= chmod
@@ -47,11 +45,16 @@ INSTALL= install
 
 DESTDIR= /usr/local/bin
 
-TARGETS= vread
+TARGETS= vread testvread
 
 all: ${TARGETS}
 
 vread: vread.sh
+	${RM} -f $@
+	${CP} -f $? $@
+	${CHMOD} 0555 $@
+
+testvread: testvread.sh
 	${RM} -f $@
 	${CP} -f $? $@
 	${CHMOD} 0555 $@
