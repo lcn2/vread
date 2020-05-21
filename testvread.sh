@@ -51,7 +51,7 @@
 
 # setup
 #
-export VERSION="4.4-20200512"
+export VERSION="4.5-20200520"
 export V_FLAG=
 export VREAD=
 export EXIT_BADTEST="1"

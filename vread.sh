@@ -53,8 +53,9 @@
 
 # setup
 #
-export VERSION="4.4-20200512"
+export VERSION="4.5-20200520"
 export V_FLAG=
+export B_FLAG=
 export C_FLAG=
 export TYPE=
 export PROMPT=
@@ -77,11 +78,12 @@ export ANSWER SECOND_ANSWER INPUT CANONICAL_INPUT
 export PROG="$0"
 export USAGE="usage:
 
-$PROG [-h] [-v] [-c] [-o] [-e] [-s] [-r repeat_prompt] [-m maxlen] [-t timeout] type prompt [errmsg]
+$PROG [-h] [-v] [-b] [-c] [-o] [-e] [-s] [-r repeat_prompt] [-m maxlen] [-t timeout] type prompt [errmsg]
 
     -h		output usage message and exit $EXIT_USAGE
     -v		verbose mode for debugging
 
+    -b		do not print a blank after the promt (def: print a space after prompt and repeat_prompt)
     -c		Canonicalize the result
     -o		prompt once, exit $EXIT_BADFORMAT if invalid input
     -e		enable READLINE editing mode
@@ -206,7 +208,7 @@ trap "printf '\n\ninterrupted\n\n' 1>&2; echo; exit 2" 1 2 3 15 # exit 2
 
 # parse args
 #
-while getopts :hvcoesr:m:t: flag; do
+while getopts :hvbcoesr:m:t: flag; do
 
     # validate flag
     #
@@ -215,6 +217,9 @@ while getopts :hvcoesr:m:t: flag; do
         echo "$USAGE" 1>&2
         echo               # print empty stdout to indicate error
         exit "$EXIT_USAGE" # exit 3
+        ;;
+    b)
+        B_FLAG="true"
         ;;
     c)
         C_FLAG="true"
@@ -605,14 +610,21 @@ prompt() {
         # retry or fail if -o
         return "$EXIT_CODE"
     fi
-    P_STRING="$1"
-    if [[ -n $V_FLAG ]]; then
-        echo "$PROG: debug: prompt $P_STRING" 1>&2
-    fi
 
     # Clear any previously supplied INPUT
     #
     INPUT=
+
+    # Determine the read prompt
+    #
+    if [[ -n $B_FLAG ]]; then
+	READ_PROMPT="$1"
+    else
+	READ_PROMPT="$1 "
+    fi
+    if [[ -n $V_FLAG ]]; then
+        echo "$PROG: debug: prompt \"$READ_PROMPT\"" 1>&2
+    fi
 
     # prompt and read input
     #
@@ -633,29 +645,29 @@ prompt() {
         if [[ -n $TIMEOUT ]]; then
             if [[ -n $E_FLAG ]]; then
                 if [[ -n $V_FLAG ]]; then
-                    echo "$PROG: debug: read -r -e -t $TIMEOUT -n $NCHARS -p \"$P_STRING \" -s INPUT" 1>&2
+                    echo "$PROG: debug: read -r -e -t $TIMEOUT -n $NCHARS -p \"$READ_PROMPT\" -s INPUT" 1>&2
                 fi
-                read -r -e -t "$TIMEOUT" -n "$NCHARS" -p "$P_STRING " -s INPUT
+                read -r -e -t "$TIMEOUT" -n "$NCHARS" -p "$READ_PROMPT" -s INPUT
                 status="$?"
             else
                 if [[ -n $V_FLAG ]]; then
-                    echo "$PROG: debug: read -r -t $TIMEOUT -n $NCHARS -p \"$P_STRING \" -s INPUT" 1>&2
+                    echo "$PROG: debug: read -r -t $TIMEOUT -n $NCHARS -p \"$READ_PROMPT\" -s INPUT" 1>&2
                 fi
-                read -r -t "$TIMEOUT" -n "$NCHARS" -p "$P_STRING " -s INPUT
+                read -r -t "$TIMEOUT" -n "$NCHARS" -p "$READ_PROMPT" -s INPUT
                 status="$?"
             fi
         else
             if [[ -n $E_FLAG ]]; then
                 if [[ -n $V_FLAG ]]; then
-                    echo "$PROG: debug: read -r -e -n $NCHARS -p \"$P_STRING \" -s INPUT" 1>&2
+                    echo "$PROG: debug: read -r -e -n $NCHARS -p \"$READ_PROMPT\" -s INPUT" 1>&2
                 fi
-                read -r -e -n "$NCHARS" -p "$P_STRING " -s INPUT
+                read -r -e -n "$NCHARS" -p "$READ_PROMPT" -s INPUT
                 status="$?"
             else
                 if [[ -n $V_FLAG ]]; then
-                    echo "$PROG: debug: read -r -n $NCHARS -p \"$P_STRING \" -s INPUT" 1>&2
+                    echo "$PROG: debug: read -r -n $NCHARS -p \"$READ_PROMPT\" -s INPUT" 1>&2
                 fi
-                read -r -n "$NCHARS" -p "$P_STRING " -s INPUT
+                read -r -n "$NCHARS" -p "$READ_PROMPT" -s INPUT
                 status="$?"
             fi
         fi
@@ -665,29 +677,29 @@ prompt() {
         if [[ -n $TIMEOUT ]]; then
             if [[ -n $E_FLAG ]]; then
                 if [[ -n $V_FLAG ]]; then
-                    echo "$PROG: debug: read -r -e -t $TIMEOUT -n $NCHARS -p \"$P_STRING \" INPUT" 1>&2
+                    echo "$PROG: debug: read -r -e -t $TIMEOUT -n $NCHARS -p \"$READ_PROMPT\" INPUT" 1>&2
                 fi
-                read -r -e -t "$TIMEOUT" -n "$NCHARS" -p "$P_STRING " INPUT
+                read -r -e -t "$TIMEOUT" -n "$NCHARS" -p "$READ_PROMPT" INPUT
                 status="$?"
             else
                 if [[ -n $V_FLAG ]]; then
-                    echo "$PROG: debug: read -r -t $TIMEOUT -n $NCHARS -p \"$P_STRING \" INPUT" 1>&2
+                    echo "$PROG: debug: read -r -t $TIMEOUT -n $NCHARS -p \"$READ_PROMPT\" INPUT" 1>&2
                 fi
-                read -r -t "$TIMEOUT" -n "$NCHARS" -p "$P_STRING " INPUT
+                read -r -t "$TIMEOUT" -n "$NCHARS" -p "$READ_PROMPT" INPUT
                 status="$?"
             fi
         else
             if [[ -n $E_FLAG ]]; then
                 if [[ -n $V_FLAG ]]; then
-                    echo "$PROG: debug: read -r -e -n $NCHARS -p \"$P_STRING \" INPUT" 1>&2
+                    echo "$PROG: debug: read -r -e -n $NCHARS -p \"$READ_PROMPT\" INPUT" 1>&2
                 fi
-                read -r -e -n "$NCHARS" -p "$P_STRING " INPUT
+                read -r -e -n "$NCHARS" -p "$READ_PROMPT" INPUT
                 status="$?"
             else
                 if [[ -n $V_FLAG ]]; then
-                    echo "$PROG: debug: read -r -n $NCHARS -p \"$P_STRING \" INPUT" 1>&2
+                    echo "$PROG: debug: read -r -n $NCHARS -p \"$READ_PROMPT\" INPUT" 1>&2
                 fi
-                read -r -n "$NCHARS" -p "$P_STRING " INPUT
+                read -r -n "$NCHARS" -p "$READ_PROMPT" INPUT
                 status="$?"
             fi
         fi
