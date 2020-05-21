@@ -53,7 +53,7 @@
 
 # setup
 #
-export VERSION="4.5-20200520"
+export VERSION="4.5.1-20200520"
 export V_FLAG=
 export B_FLAG=
 export C_FLAG=
@@ -78,90 +78,90 @@ export ANSWER SECOND_ANSWER INPUT CANONICAL_INPUT
 export PROG="$0"
 export USAGE="usage:
 
-$PROG [-h] [-v] [-b] [-c] [-o] [-e] [-s] [-r repeat_prompt] [-m maxlen] [-t timeout] type prompt [errmsg]
+$PROG [-h] [-v] [-b] [-c] [-o] [-e] [-r repeat_prompt] [-s] [-m maxlen] [-t timeout] type prompt [errmsg]
 
-    -h		output usage message and exit $EXIT_USAGE
-    -v		verbose mode for debugging
+    -h			Output usage message and exit $EXIT_USAGE
+    -v			Verbose mode for debugging
 
-    -b		do not print a blank after the promt (def: print a space after prompt and repeat_prompt)
-    -c		Canonicalize the result
-    -o		prompt once, exit $EXIT_BADFORMAT if invalid input
-    -e		enable READLINE editing mode
+    -b			Do not print a blank after the promt (def: print a space after prompt and repeat_prompt)
+    -c			Canonicalize the result
+    -o			Prompt once, exit $EXIT_BADFORMAT if invalid input
+    -e			Enable READLINE editing mode
 
-    -s			silent mode (useful for password entry) (def: echo characters)
-    -r repeat_prompt	prompt to issue to verify entry (def: do ask again)
+    -r repeat_prompt	Prompt to issue to verify entry (def: do ask again)
+    -s			Silent mode (useful for password entry) (def: echo characters)
 
-    -m maxlen	maximum chars for input (def: $MAXLEN)
-    -t timeout	Failure if not a complete line in timeout secs (def: forever)
+    -m maxlen		Maximum chars for input (def: $MAXLEN)
+    -t timeout		Failure if not a complete line in timeout secs (def: forever)
 
-    type	type of input to validate, must be one of:
+    type		Type of input to validate, must be one of:
 
-	natint		integer > 0
-	posint		integer >= 0
-	int		any integer
+	natint			Integer > 0
+	posint			Integer >= 0
+	int			Any integer
 
-	natreal		any real number > 0
-	posreal		any real number >= 0
-	real		any real number
+	natreal			Any real number > 0
+	posreal			Any real number >= 0
+	real			Any real number
 
-	string		any non-empty single line string, trailing newline removed
-	yorn		y or n or Y or N or Yes or No or YES or NO
-			    if -c, canonical rewrite: y n
-	cde		c or C or d or D or e or E
-			    if -c, canonical rewrite: c d e
-	ds		d or D or s or S
-			    if -c, canonical rewrite: d s
-	ab		a or A or b or B
-			    if -c, canonical rewrite: a b
-	fh		f or F or h or H
-			    if -c, canonical rewrite: f h
-	v4v6		v4 or V4 or v6 or V6
-			    if -c, canonical rewrite: v4 v6
-	123		1 or 2 or 3
-			    if -c, canonical rewrite: 1 2 3
-	012		0 or 1 or 2
-			    if -c, canonical rewrite: 0 1 2
+	string			Any non-empty single line string, trailing newline removed
+	yorn			One of: y or n or Y or N or Yes or No or YES or NO
+				    if -c, canonical rewrite: y n
+	cde			One of: c or C or d or D or e or E
+				    if -c, canonical rewrite: c d e
+	ds			One of: d or D or s or S
+				    if -c, canonical rewrite: d s
+	ab			One of: a or A or b or B
+				    if -c, canonical rewrite: a b
+	fh			One of: f or F or h or H
+				    if -c, canonical rewrite: f h
+	v4v6			One of: v4 or V4 or v6 or V6
+				    if -c, canonical rewrite: v4 v6
+	123			One of: 1 or 2 or 3
+				    if -c, canonical rewrite: 1 2 3
+	012			One of: 0 or 1 or 2
+				    if -c, canonical rewrite: 0 1 2
 
-	cr		Just press return, and then return a single space
-			    output is changed to: a single space
+	cr			Just press return, and then return a single space
+				    output is changed to: a single space
 
-	ip4addr		IPv4 address
-	ip6addr		IPv6 address
-	ipaddr		IPv4 or IPv6 address
+	ip4addr			IPv4 address
+	ip6addr			IPv6 address
+	ipaddr			IPv4 or IPv6 address
 
-	port		UDP or TCP port number (1-65535)
+	port			UDP or TCP port number (1-65535)
 
-	v4prefix	0 to 32
-	v6prefix	0 to 128
+	v4prefix		0 to 32
+	v6prefix		0 to 128
 
-	hostname	hostname valid under RFC-952 and RFC-1123
-	hostoripv4	hostname valid under RFC-952 and RFC-1123 or IPv4 address
-	hostorip	hostname valid under RFC-952 and RFC-1123 or IPv4 address or IPv6 address
+	hostname		Hostname valid under RFC-952 and RFC-1123
+	hostoripv4		Hostname valid under RFC-952 and RFC-1123 or IPv4 address
+	hostorip		Hostname valid under RFC-952 and RFC-1123 or IPv4 address or IPv6 address
 
-	interface	eth followed by a digit or single letter
+	interface		Interface name: eth followed by a digit or single letter
 
-	sane_filename	filename (not a path) excluding characters that are likely to cause problems
-	insane_filename	filename (not a path) - NOT RECOMMENDED
+	sane_filename		Filename (not a path) excluding characters that are likely to cause problems
+	insane_filename		Filename (not a path) - NOT RECOMMENDED
 
-	sane_path	poth of sane_filenames excludung path components that are likely to cause problems
-	insane_path	poth of insane_filenames - NOT RECOMMENDED
+	sane_path		Poth of sane_filenames excludung path components that are likely to cause problems
+	insane_path		Poth of insane_filenames - NOT RECOMMENDED
 
-	sane_username	valid and sane username
-	insane_username	any non-empty username string - NOT RECOMMENDED
+	sane_username		Valid and sane username
+	insane_username		Any non-empty username string - NOT RECOMMENDED
 
-	sane_password	valid and sane password
-	insane_possword	any non-empty password string - NOT RECOMMENDED
+	sane_password		Valid and sane password
+	insane_possword		Any non-empty password string - NOT RECOMMENDED
 
-	sane_url	valid and sane URL
+	sane_url		Valid and sane URL
 
-	trans_mode_0	file, http, https, ftp plus Caps and ALL CAPS
-			    if -c, canonical rewrite: file http https ftp
-	trans_mode_1	scp, sftp, ftp plus Caps and ALL CAPS
-			    if -c, canonical rewrite: scp sftp ftp
+	trans_mode_0		One of: file, http, https, ftp plus Caps and ALL CAPS
+				    if -c, canonical rewrite: file http https ftp
+	trans_mode_1		One of: scp, sftp, ftp plus Caps and ALL CAPS
+				    if -c, canonical rewrite: scp sftp ftp
 
-    prompt	input prompt to print, without a trailing newline, followed by a space
+    prompt		Input prompt to print, without a trailing newline, followed by a space
 
-    errmsg	optional error message to print of input is invalid
+    errmsg		Optional error message to print if input is invalid
 
 NOTE: Leading whitespace and trailing is removed from input.
 
