@@ -53,7 +53,7 @@
 
 # setup
 #
-export VERSION="4.5.1-20200520"
+export VERSION="4.6-20200528"
 export V_FLAG=
 export B_FLAG=
 export C_FLAG=
@@ -115,6 +115,8 @@ $PROG [-h] [-v] [-b] [-c] [-o] [-e] [-r repeat_prompt] [-s] [-m maxlen] [-t time
 				    if -c, canonical rewrite: a b
 	fh			One of: f or F or h or H
 				    if -c, canonical rewrite: f h
+	gd			One of: g or G or d or D
+				    if -c, canonical rewrite: g d
 	v4v6			One of: v4 or V4 or v6 or V6
 				    if -c, canonical rewrite: v4 v6
 	123			One of: 1 or 2 or 3
@@ -129,10 +131,12 @@ $PROG [-h] [-v] [-b] [-c] [-o] [-e] [-r repeat_prompt] [-s] [-m maxlen] [-t time
 	ip6addr			IPv6 address
 	ipaddr			IPv4 or IPv6 address
 
-	port			UDP or TCP port number (1-65535)
+	v4cidr			0 to 32
+	v6cidr			0 to 128
 
-	v4prefix		0 to 32
-	v6prefix		0 to 128
+	v4netmask		IPv4 netmask 0.0.0.0 thru 255.255.255.255
+
+	port			UDP or TCP port number (1-65535)
 
 	hostname		Hostname valid under RFC-952 and RFC-1123
 	hostoripv4		Hostname valid under RFC-952 and RFC-1123 or IPv4 address
@@ -154,10 +158,12 @@ $PROG [-h] [-v] [-b] [-c] [-o] [-e] [-r repeat_prompt] [-s] [-m maxlen] [-t time
 
 	sane_url		Valid and sane URL
 
-	trans_mode_0		One of: file, http, https, ftp plus Caps and ALL CAPS
-				    if -c, canonical rewrite: file http https ftp
-	trans_mode_1		One of: scp, sftp, ftp plus Caps and ALL CAPS
-				    if -c, canonical rewrite: scp sftp ftp
+	trans_mode_0		One of: ftp sftp scp   plus Caps and ALL CAPS
+				    if -c, canonical rewrite: ftp sftp scp
+	trans_mode_1		One of: sftp scp ftp http file   plus Caps and ALL CAPS
+				    if -c, canonical rewrite: sftp scp ftp http file
+	trans_mode_2		One of: http https   plus Caps and ALL CAPS
+				    if -c, canonical rewrite: http https
 
     prompt		Input prompt to print, without a trailing newline, followed by a space
 
@@ -314,6 +320,7 @@ cde) ;;
 ds) ;;
 ab) ;;
 fh) ;;
+gd) ;;
 v4v6) ;;
 123) ;;
 012) ;;
@@ -321,9 +328,10 @@ cr) ;;
 ip4addr) ;;
 ip6addr) ;;
 ipaddr) ;;
+v4cidr) ;;
+v6cidr) ;;
+v4netmask) ;;
 port) ;;
-v4prefix) ;;
-v6prefix) ;;
 hostname) ;;
 hostoripv4) ;;
 hostorip) ;;
@@ -339,6 +347,7 @@ insane_password) ;;
 sane_url) ;;
 trans_mode_0) ;;
 trans_mode_1) ;;
+trans_mode_2) ;;
 
 *)
     if [[ -n $V_FLAG ]]; then
@@ -397,20 +406,28 @@ RE_PORT="${RE_PORT}|655[0-2][0-9]"
 RE_PORT="${RE_PORT}|6553[0-5]"
 export PORT_REGEX='^('"$RE_PORT"')$'
 
-# IPv4 CIDR 0 thru 32
+# IPv4 CIDR 0 thru 32 REGEX
 #
 RE_IPV4CIDR="[0-9]"
 RE_IPV4CIDR="${RE_IPV4CIDR}|[1-2][0-9]"
 RE_IPV4CIDR="${RE_IPV4CIDR}|3[0-2]"
 export IPV4CIDR_REGEX='^('"$RE_IPV4CIDR"')$'
 
-# IPv6 CIDR 0 thru 128
+# IPv6 CIDR 0 thru 128 REGEX
 #
 RE_IPV6CIDR="[0-9]"
 RE_IPV6CIDR="${RE_IPV6CIDR}|[1-9][0-9]"
 RE_IPV6CIDR="${RE_IPV6CIDR}|1[0-1][0-9]"
 RE_IPV6CIDR="${RE_IPV6CIDR}|12[0-8]"
 export IPV6CIDR_REGEX='^('"$RE_IPV6CIDR"')$'
+
+# IPv4 netmask REGEX
+#
+RE_V4NETMASK="(254|252|248|240|224|192|128|0)\.0\.0\.0|"
+RE_V4NETMASK="${RE_V4NETMASK}255\.(254|252|248|240|224|192|128|0)\.0\.0|"
+RE_V4NETMASK="${RE_V4NETMASK}255\.255\.(254|252|248|240|224|192|128|0)\.0|"
+RE_V4NETMASK="${RE_V4NETMASK}255\.255\.255\.(255|254|252|248|240|224|192|128|0)"
+export V4NETMASK_REGEX='^('"$RE_V4NETMASK"')$'
 
 # interface - eth followed by a digit or single letter
 #
@@ -464,7 +481,7 @@ export SANE_FILENAME_REGEX='^'"$RE_SANE_FILENAME"'$'
 #
 # Paths may only contain same filename characters.
 # Paths may not use .. as filename components.
-# Paths ,ay not use . as a filename component after starting with a ./ component.
+# Paths may not use . as a filename component after starting with a ./ component.
 # Paths must not be / alone.
 # Paths must not be . alone.
 # Paths may not contain more than one / in a row.
@@ -618,9 +635,9 @@ prompt() {
     # Determine the read prompt
     #
     if [[ -n $B_FLAG ]]; then
-	READ_PROMPT="$1"
+        READ_PROMPT="$1"
     else
-	READ_PROMPT="$1 "
+        READ_PROMPT="$1 "
     fi
     if [[ -n $V_FLAG ]]; then
         echo "$PROG: debug: prompt \"$READ_PROMPT\"" 1>&2
@@ -1047,6 +1064,27 @@ validate() {
         esac
         ;;
 
+    gd)
+        if [[ -n $V_FLAG ]]; then
+            echo "$PROG: debug: type $TYPE validation: g or G or d or D" 1>&2
+        fi
+        case "$VALUE" in
+        g | G)
+            CANONICAL_INPUT='g'
+            ;;
+        d | D)
+            CANONICAL_INPUT='d'
+            ;;
+        *)
+            if [[ -n $V_FLAG ]]; then
+                echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+            fi
+            EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+            return "$EXIT_CODE"
+            ;;
+        esac
+        ;;
+
     v4v6)
         if [[ -n $V_FLAG ]]; then
             echo "$PROG: debug: type $TYPE validation: v4 or V4 or v6 or V6" 1>&2
@@ -1155,6 +1193,45 @@ validate() {
         fi
         ;;
 
+    v4cidr)
+        if [[ -n $V_FLAG ]]; then
+            echo "$PROG: debug: type $TYPE validation: IPv4 /CIDR" 1>&2
+        fi
+        if [[ ! $VALUE =~ $IPV4CIDR_REGEX ]]; then
+            if [[ -n $V_FLAG ]]; then
+                echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+            fi
+            EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+            return "$EXIT_CODE"
+        fi
+        ;;
+
+    v6cidr)
+        if [[ -n $V_FLAG ]]; then
+            echo "$PROG: debug: type $TYPE validation: IPv6 /CIDR" 1>&2
+        fi
+        if [[ ! $VALUE =~ $IPV6CIDR_REGEX ]]; then
+            if [[ -n $V_FLAG ]]; then
+                echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+            fi
+            EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+            return "$EXIT_CODE"
+        fi
+        ;;
+
+    v4netmask)
+        if [[ -n $V_FLAG ]]; then
+            echo "$PROG: debug: type $TYPE validation: IPv4 netmask" 1>&2
+        fi
+        if [[ ! $VALUE =~ $V4NETMASK_REGEX ]]; then
+            if [[ -n $V_FLAG ]]; then
+                echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+            fi
+            EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+            return "$EXIT_CODE"
+        fi
+        ;;
+
     ipaddr)
         if [[ -n $V_FLAG ]]; then
             echo "$PROG: debug: type $TYPE validation: IPv4 or IPv6 address" 1>&2
@@ -1173,32 +1250,6 @@ validate() {
             echo "$PROG: debug: type $TYPE validation: UDP or TCP port number (1-65535)" 1>&2
         fi
         if [[ ! $VALUE =~ $PORT_REGEX || $VALUE -lt 0 || $VALUE -gt 65535 ]]; then
-            if [[ -n $V_FLAG ]]; then
-                echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
-            fi
-            EXIT_CODE="$EXIT_BADFORMAT" # exit 1
-            return "$EXIT_CODE"
-        fi
-        ;;
-
-    v4prefix)
-        if [[ -n $V_FLAG ]]; then
-            echo "$PROG: debug: type $TYPE validation: IPv4 /CIDR" 1>&2
-        fi
-        if [[ ! $VALUE =~ $IPV4CIDR_REGEX ]]; then
-            if [[ -n $V_FLAG ]]; then
-                echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
-            fi
-            EXIT_CODE="$EXIT_BADFORMAT" # exit 1
-            return "$EXIT_CODE"
-        fi
-        ;;
-
-    v6prefix)
-        if [[ -n $V_FLAG ]]; then
-            echo "$PROG: debug: type $TYPE validation: IPv6 /CIDR" 1>&2
-        fi
-        if [[ ! $VALUE =~ $IPV6CIDR_REGEX ]]; then
             if [[ -n $V_FLAG ]]; then
                 echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
             fi
@@ -1412,20 +1463,17 @@ validate() {
 
     trans_mode_0)
         if [[ -n $V_FLAG ]]; then
-            echo "$PROG: debug: type $TYPE validation: file, http, https, ftp plus Caps and ALL CAPS" 1>&2
+            echo "$PROG: debug: type $TYPE validation: ftp sftp scp   plus Caps and ALL CAPS" 1>&2
         fi
         case "$VALUE" in
-        file | File | FILE)
-            CANONICAL_INPUT='file'
-            ;;
-        http | Http | HTTP)
-            CANONICAL_INPUT='http'
-            ;;
-        https | Https | HTTPS)
-            CANONICAL_INPUT='https'
-            ;;
         ftp | Ftp | FTP)
             CANONICAL_INPUT='ftp'
+            ;;
+        scp | Scp | SCP)
+            CANONICAL_INPUT='scp'
+            ;;
+        sftp | Sftp | SFTP)
+            CANONICAL_INPUT='sftp'
             ;;
         *)
             if [[ -n $V_FLAG ]]; then
@@ -1439,17 +1487,44 @@ validate() {
 
     trans_mode_1)
         if [[ -n $V_FLAG ]]; then
-            echo "$PROG: debug: type $TYPE validation: scp, sftp, ftp plus Caps and ALL CAPS" 1>&2
+            echo "$PROG: debug: type $TYPE validation: sftp scp ftp http file   plus Caps and ALL CAPS" 1>&2
         fi
         case "$VALUE" in
-        scp | Scp | SCP)
-            CANONICAL_INPUT='scp'
-            ;;
         sftp | Sftp | SFTP)
             CANONICAL_INPUT='sftp'
             ;;
+        scp | Scp | SCP)
+            CANONICAL_INPUT='scp'
+            ;;
         ftp | Ftp | FTP)
             CANONICAL_INPUT='ftp'
+            ;;
+        http | Http | HTTP)
+            CANONICAL_INPUT='http'
+            ;;
+        file | File | FILE)
+            CANONICAL_INPUT='file'
+            ;;
+        *)
+            if [[ -n $V_FLAG ]]; then
+                echo "$PROG: Warning: input format is not valid according to: $TYPE" 1>&2
+            fi
+            EXIT_CODE="$EXIT_BADFORMAT" # exit 1
+            return "$EXIT_CODE"
+            ;;
+        esac
+        ;;
+
+    trans_mode_2)
+        if [[ -n $V_FLAG ]]; then
+            echo "$PROG: debug: type $TYPE validation: http https   plus Caps and ALL CAPS" 1>&2
+        fi
+        case "$VALUE" in
+        http | Http | HTTP)
+            CANONICAL_INPUT='http'
+            ;;
+        https | Https | HTTPS)
+            CANONICAL_INPUT='https'
             ;;
         *)
             if [[ -n $V_FLAG ]]; then

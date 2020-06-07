@@ -51,7 +51,7 @@
 
 # setup
 #
-export VERSION="4.5.1-20200520"
+export VERSION="4.6-20200528"
 export V_FLAG=
 export VREAD=
 export EXIT_BADTEST="1"
@@ -871,6 +871,56 @@ valid_canon_input_test 'F' fh 'f'
 valid_canon_input_test 'h' fh 'h'
 valid_canon_input_test 'H' fh 'h'
 #
+invalid_input_test 'y' gd 1
+invalid_input_test 'Y' gd 1
+invalid_input_test 'n' gd 1
+invalid_input_test 'N' gd 1
+invalid_input_test 'yes' gd 1
+invalid_input_test 'Yes' gd 1
+invalid_input_test 'YES' gd 1
+invalid_input_test 'no' gd 1
+invalid_input_test 'No' gd 1
+invalid_input_test 'NO' gd 1
+invalid_input_test 'c' gd 1
+invalid_input_test 'C' gd 1
+valid_input_test 'd' gd
+valid_input_test 'D' gd
+invalid_input_test 'e' gd 1
+invalid_input_test 'E' gd 1
+invalid_input_test 's' gd 1
+invalid_input_test 'S' gd 1
+invalid_input_test 'a' gd 1
+invalid_input_test 'A' gd 1
+invalid_input_test 'b' gd 1
+invalid_input_test 'B' gd 1
+invalid_input_test 'f' gd 1
+invalid_input_test 'F' gd 1
+valid_input_test 'g' gd
+valid_input_test 'G' gd
+invalid_input_test 'h' gd 1
+invalid_input_test 'H' gd 1
+invalid_input_test '0' gd 1
+invalid_input_test '1' gd 1
+invalid_input_test '2' gd 1
+invalid_input_test '3' gd 1
+invalid_input_test '4' gd 1
+invalid_input_test '5' gd 1
+invalid_input_test 'abc' gd 1
+invalid_input_test '1abc' gd 1
+invalid_input_test 'abc1' gd 1
+invalid_input_test 'v4' gd 1
+invalid_input_test 'V4' gd 1
+invalid_input_test 'v5' gd 1
+invalid_input_test 'V5' gd 1
+invalid_input_test 'v6' gd 1
+invalid_input_test 'V6' gd 1
+invalid_input_test '' gd 7
+#
+valid_canon_input_test 'g' gd 'g'
+valid_canon_input_test 'G' gd 'g'
+valid_canon_input_test 'd' gd 'd'
+valid_canon_input_test 'D' gd 'd'
+#
 invalid_input_test 'y' v4v6 1
 invalid_input_test 'Y' v4v6 1
 invalid_input_test 'n' v4v6 1
@@ -1057,12 +1107,44 @@ invalid_input_test 'V6' cr 1
 valid_input_test '' cr
 #
 valid_input_test '0.0.0.0' ip4addr
+valid_input_test '128.0.0.0' ip4addr
+valid_input_test '128.0.0.0' ip4addr
+valid_input_test '192.0.0.0' ip4addr
+valid_input_test '224.0.0.0' ip4addr
+valid_input_test '240.0.0.0' ip4addr
+valid_input_test '248.0.0.0' ip4addr
+valid_input_test '252.0.0.0' ip4addr
+valid_input_test '254.0.0.0' ip4addr
+valid_input_test '255.0.0.0' ip4addr
+valid_input_test '255.128.0.0' ip4addr
+valid_input_test '255.192.0.0' ip4addr
+valid_input_test '255.224.0.0' ip4addr
+valid_input_test '255.240.0.0' ip4addr
+valid_input_test '255.248.0.0' ip4addr
+valid_input_test '255.252.0.0' ip4addr
+valid_input_test '255.254.0.0' ip4addr
+valid_input_test '255.255.0.0' ip4addr
+valid_input_test '255.255.128.0' ip4addr
+valid_input_test '255.255.192.0' ip4addr
+valid_input_test '255.255.224.0' ip4addr
+valid_input_test '255.255.240.0' ip4addr
+valid_input_test '255.255.248.0' ip4addr
+valid_input_test '255.255.252.0' ip4addr
+valid_input_test '255.255.254.0' ip4addr
+valid_input_test '255.255.255.0' ip4addr
+valid_input_test '255.255.255.128' ip4addr
+valid_input_test '255.255.255.192' ip4addr
+valid_input_test '255.255.255.224' ip4addr
+valid_input_test '255.255.255.240' ip4addr
+valid_input_test '255.255.255.248' ip4addr
+valid_input_test '255.255.255.252' ip4addr
+valid_input_test '255.255.255.254' ip4addr
+valid_input_test '255.255.255.255' ip4addr
 valid_input_test '1.1.1.1' ip4addr
 valid_input_test '8.8.8.8' ip4addr
 valid_input_test '127.0.0.1' ip4addr
 valid_input_test '192.168.45.235' ip4addr
 valid_input_test '209.51.188.20' ip4addr
-valid_input_test '255.255.255.255' ip4addr
 invalid_input_test '1.2' ip4addr 1
 invalid_input_test '1.2.3' ip4addr 1
 invalid_input_test '1.0.0.0.0' ip4addr 1
@@ -1124,12 +1206,44 @@ invalid_input_test 'fe08::7:8i' ip4addr 1
 invalid_input_test 'fe08::7:8interface' ip4addr 1
 #
 invalid_input_test '0.0.0.0' ip6addr 1
+invalid_input_test '128.0.0.0' ip6addr 1
+invalid_input_test '128.0.0.0' ip6addr 1
+invalid_input_test '192.0.0.0' ip6addr 1
+invalid_input_test '224.0.0.0' ip6addr 1
+invalid_input_test '240.0.0.0' ip6addr 1
+invalid_input_test '248.0.0.0' ip6addr 1
+invalid_input_test '252.0.0.0' ip6addr 1
+invalid_input_test '254.0.0.0' ip6addr 1
+invalid_input_test '255.0.0.0' ip6addr 1
+invalid_input_test '255.128.0.0' ip6addr 1
+invalid_input_test '255.192.0.0' ip6addr 1
+invalid_input_test '255.224.0.0' ip6addr 1
+invalid_input_test '255.240.0.0' ip6addr 1
+invalid_input_test '255.248.0.0' ip6addr 1
+invalid_input_test '255.252.0.0' ip6addr 1
+invalid_input_test '255.254.0.0' ip6addr 1
+invalid_input_test '255.255.0.0' ip6addr 1
+invalid_input_test '255.255.128.0' ip6addr 1
+invalid_input_test '255.255.192.0' ip6addr 1
+invalid_input_test '255.255.224.0' ip6addr 1
+invalid_input_test '255.255.240.0' ip6addr 1
+invalid_input_test '255.255.248.0' ip6addr 1
+invalid_input_test '255.255.252.0' ip6addr 1
+invalid_input_test '255.255.254.0' ip6addr 1
+invalid_input_test '255.255.255.0' ip6addr 1
+invalid_input_test '255.255.255.128' ip6addr 1
+invalid_input_test '255.255.255.192' ip6addr 1
+invalid_input_test '255.255.255.224' ip6addr 1
+invalid_input_test '255.255.255.240' ip6addr 1
+invalid_input_test '255.255.255.248' ip6addr 1
+invalid_input_test '255.255.255.252' ip6addr 1
+invalid_input_test '255.255.255.254' ip6addr 1
+invalid_input_test '255.255.255.255' ip6addr 1
 invalid_input_test '1.1.1.1' ip6addr 1
 invalid_input_test '8.8.8.8' ip6addr 1
 invalid_input_test '127.0.0.1' ip6addr 1
 invalid_input_test '192.168.45.235' ip6addr 1
 invalid_input_test '209.51.188.20' ip6addr 1
-invalid_input_test '255.255.255.255' ip6addr 1
 invalid_input_test '1.2' ip6addr 1
 invalid_input_test '1.2.3' ip6addr 1
 invalid_input_test '1.0.0.0.0' ip6addr 1
@@ -1191,12 +1305,44 @@ invalid_input_test 'fe08::7:8i' ip6addr 1
 invalid_input_test 'fe08::7:8interface' ip6addr 1
 #
 valid_input_test '0.0.0.0' ipaddr
+valid_input_test '128.0.0.0' ipaddr
+valid_input_test '128.0.0.0' ipaddr
+valid_input_test '192.0.0.0' ipaddr
+valid_input_test '224.0.0.0' ipaddr
+valid_input_test '240.0.0.0' ipaddr
+valid_input_test '248.0.0.0' ipaddr
+valid_input_test '252.0.0.0' ipaddr
+valid_input_test '254.0.0.0' ipaddr
+valid_input_test '255.0.0.0' ipaddr
+valid_input_test '255.128.0.0' ipaddr
+valid_input_test '255.192.0.0' ipaddr
+valid_input_test '255.224.0.0' ipaddr
+valid_input_test '255.240.0.0' ipaddr
+valid_input_test '255.248.0.0' ipaddr
+valid_input_test '255.252.0.0' ipaddr
+valid_input_test '255.254.0.0' ipaddr
+valid_input_test '255.255.0.0' ipaddr
+valid_input_test '255.255.128.0' ipaddr
+valid_input_test '255.255.192.0' ipaddr
+valid_input_test '255.255.224.0' ipaddr
+valid_input_test '255.255.240.0' ipaddr
+valid_input_test '255.255.248.0' ipaddr
+valid_input_test '255.255.252.0' ipaddr
+valid_input_test '255.255.254.0' ipaddr
+valid_input_test '255.255.255.0' ipaddr
+valid_input_test '255.255.255.128' ipaddr
+valid_input_test '255.255.255.192' ipaddr
+valid_input_test '255.255.255.224' ipaddr
+valid_input_test '255.255.255.240' ipaddr
+valid_input_test '255.255.255.248' ipaddr
+valid_input_test '255.255.255.252' ipaddr
+valid_input_test '255.255.255.254' ipaddr
+valid_input_test '255.255.255.255' ipaddr
 valid_input_test '1.1.1.1' ipaddr
 valid_input_test '8.8.8.8' ipaddr
 valid_input_test '127.0.0.1' ipaddr
 valid_input_test '192.168.45.235' ipaddr
 valid_input_test '209.51.188.20' ipaddr
-valid_input_test '255.255.255.255' ipaddr
 invalid_input_test '1.2' ipaddr 1
 invalid_input_test '1.2.3' ipaddr 1
 invalid_input_test '1.0.0.0.0' ipaddr 1
@@ -1257,6 +1403,131 @@ invalid_input_test 'fe08::7:8%' ipaddr 1
 invalid_input_test 'fe08::7:8i' ipaddr 1
 invalid_input_test 'fe08::7:8interface' ipaddr 1
 #
+valid_input_test '0' v4cidr
+valid_input_test '1' v4cidr
+valid_input_test '12' v4cidr
+valid_input_test '23' v4cidr
+valid_input_test '32' v4cidr
+invalid_input_test '-1' v4cidr 1
+invalid_input_test '-12' v4cidr 1
+invalid_input_test '33' v4cidr 1
+invalid_input_test '120' v4cidr 1
+#
+valid_input_test '0' v6cidr
+valid_input_test '1' v6cidr
+valid_input_test '12' v6cidr
+valid_input_test '23' v6cidr
+valid_input_test '32' v6cidr
+valid_input_test '64' v6cidr
+valid_input_test '100' v6cidr
+valid_input_test '127' v6cidr
+valid_input_test '128' v6cidr
+invalid_input_test '-1' v6cidr 1
+invalid_input_test '-12' v6cidr 1
+invalid_input_test '-128' v6cidr 1
+invalid_input_test '129' v6cidr 1
+invalid_input_test '255' v6cidr 1
+invalid_input_test '1023' v6cidr 1
+#
+valid_input_test '0.0.0.0' v4netmask
+valid_input_test '128.0.0.0' v4netmask
+valid_input_test '128.0.0.0' v4netmask
+valid_input_test '192.0.0.0' v4netmask
+valid_input_test '224.0.0.0' v4netmask
+valid_input_test '240.0.0.0' v4netmask
+valid_input_test '248.0.0.0' v4netmask
+valid_input_test '252.0.0.0' v4netmask
+valid_input_test '254.0.0.0' v4netmask
+valid_input_test '255.0.0.0' v4netmask
+valid_input_test '255.128.0.0' v4netmask
+valid_input_test '255.192.0.0' v4netmask
+valid_input_test '255.224.0.0' v4netmask
+valid_input_test '255.240.0.0' v4netmask
+valid_input_test '255.248.0.0' v4netmask
+valid_input_test '255.252.0.0' v4netmask
+valid_input_test '255.254.0.0' v4netmask
+valid_input_test '255.255.0.0' v4netmask
+valid_input_test '255.255.128.0' v4netmask
+valid_input_test '255.255.192.0' v4netmask
+valid_input_test '255.255.224.0' v4netmask
+valid_input_test '255.255.240.0' v4netmask
+valid_input_test '255.255.248.0' v4netmask
+valid_input_test '255.255.252.0' v4netmask
+valid_input_test '255.255.254.0' v4netmask
+valid_input_test '255.255.255.0' v4netmask
+valid_input_test '255.255.255.128' v4netmask
+valid_input_test '255.255.255.192' v4netmask
+valid_input_test '255.255.255.224' v4netmask
+valid_input_test '255.255.255.240' v4netmask
+valid_input_test '255.255.255.248' v4netmask
+valid_input_test '255.255.255.252' v4netmask
+valid_input_test '255.255.255.254' v4netmask
+valid_input_test '255.255.255.255' v4netmask
+invalid_input_test '1.1.1.1' v4netmask 1
+invalid_input_test '8.8.8.8' v4netmask 1
+invalid_input_test '127.0.0.1' v4netmask 1
+invalid_input_test '192.168.45.235' v4netmask 1
+invalid_input_test '209.51.188.20' v4netmask 1
+invalid_input_test '1.2' v4netmask 1
+invalid_input_test '1.2.3' v4netmask 1
+invalid_input_test '1.0.0.0.0' v4netmask 1
+invalid_input_test '260.168.45.235' v4netmask 1
+invalid_input_test '192.999.45.235' v4netmask 1
+invalid_input_test '192.168.450.235' v4netmask 1
+invalid_input_test '192.168.450.2350' v4netmask 1
+invalid_input_test '192.168.-45.235' v4netmask 1
+invalid_input_test '192.168.45.' v4netmask 1
+invalid_input_test '192.168,45.235' v4netmask 1
+invalid_input_test '192.168..235' v4netmask 1
+invalid_input_test 'abc' v4netmask 1
+invalid_input_test '1abc' v4netmask 1
+invalid_input_test 'abc1' v4netmask 1
+invalid_input_test '1:2:3:4:5:6:7:8' v4netmask 1
+invalid_input_test '1::' v4netmask 1
+invalid_input_test '1:2:3:4:5:6:7::' v4netmask 1
+invalid_input_test '1::8' v4netmask 1
+invalid_input_test '1:2:3:4:5:6::8' v4netmask 1
+invalid_input_test '1::7:8' v4netmask 1
+invalid_input_test '1:2:3:4:5::7:8' v4netmask 1
+invalid_input_test '1:2:3:4:5::8' v4netmask 1
+invalid_input_test '1::6:7:8' v4netmask 1
+invalid_input_test '1:2:3:4::6:7:8' v4netmask 1
+invalid_input_test '1:2:3:4::8' v4netmask 1
+invalid_input_test '1::5:6:7:8' v4netmask 1
+invalid_input_test '1:2:3::5:6:7:8' v4netmask 1
+invalid_input_test '1:2:3::8' v4netmask 1
+invalid_input_test '1::3:4:5:6:7:8' v4netmask 1
+invalid_input_test '1::3:4:5:6:7:8' v4netmask 1
+invalid_input_test '1::8' v4netmask 1
+invalid_input_test '::2:3:4:5:6:7:8' v4netmask 1
+invalid_input_test '::8' v4netmask 1
+invalid_input_test '::' v4netmask 1
+invalid_input_test 'fe80::7:8%eth0' v4netmask 1
+invalid_input_test 'fe80::7:8%1' v4netmask 1
+invalid_input_test '::255.255.255.255' v4netmask 1
+invalid_input_test '::ffff:255.255.255.255' v4netmask 1
+invalid_input_test '::ffff:0:255.255.255.255' v4netmask 1
+invalid_input_test '2001:db8:3:4::192.0.2.33' v4netmask 1
+invalid_input_test '64:ff9b::192.0.2.33' v4netmask 1
+invalid_input_test '::ffff:10.0.0.1' v4netmask 1
+invalid_input_test '::ffff:1.2.3.4' v4netmask 1
+invalid_input_test '::ffff:0.0.0.0' v4netmask 1
+invalid_input_test '1:2:3:4:5:6:77:88' v4netmask 1
+invalid_input_test '::ffff:255.255.255.255' v4netmask 1
+invalid_input_test 'fe08::7:8' v4netmask 1
+invalid_input_test 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff' v4netmask 1
+invalid_input_test '1:2:3:4:5:6:7:8:9' v4netmask 1
+invalid_input_test '1:2:3:4:5:6::7:8' v4netmask 1
+invalid_input_test ':1:2:3:4:5:6:7:8' v4netmask 1
+invalid_input_test '1:2:3:4:5:6:7:8:' v4netmask 1
+invalid_input_test '::1:2:3:4:5:6:7:8' v4netmask 1
+invalid_input_test '1:2:3:4:5:6:7:8::' v4netmask 1
+invalid_input_test '1:2:3:4:5:6:7:88888' v4netmask 1
+invalid_input_test '2001:db8:3:4:5::192.0.2.33' v4netmask 1
+invalid_input_test 'fe08::7:8%' v4netmask 1
+invalid_input_test 'fe08::7:8i' v4netmask 1
+invalid_input_test 'fe08::7:8interface' v4netmask 1
+#
 valid_input_test '0' port
 valid_input_test '1' port
 valid_input_test '12' port
@@ -1275,32 +1546,6 @@ invalid_input_test '-1' port 1
 invalid_input_test '-12' port 1
 invalid_input_test '65536' port 1
 invalid_input_test '100000' port 1
-#
-valid_input_test '0' v4prefix
-valid_input_test '1' v4prefix
-valid_input_test '12' v4prefix
-valid_input_test '23' v4prefix
-valid_input_test '32' v4prefix
-invalid_input_test '-1' v4prefix 1
-invalid_input_test '-12' v4prefix 1
-invalid_input_test '33' v4prefix 1
-invalid_input_test '120' v4prefix 1
-#
-valid_input_test '0' v6prefix
-valid_input_test '1' v6prefix
-valid_input_test '12' v6prefix
-valid_input_test '23' v6prefix
-valid_input_test '32' v6prefix
-valid_input_test '64' v6prefix
-valid_input_test '100' v6prefix
-valid_input_test '127' v6prefix
-valid_input_test '128' v6prefix
-invalid_input_test '-1' v6prefix 1
-invalid_input_test '-12' v6prefix 1
-invalid_input_test '-128' v6prefix 1
-invalid_input_test '129' v6prefix 1
-invalid_input_test '255' v6prefix 1
-invalid_input_test '1023' v6prefix 1
 #
 invalid_input_test '1:2:3:4:5:6:7:8' hostname 1
 invalid_input_test "-.~_!$&'()*+,;=:%40:80%2f::::::@example.com" hostname 1
@@ -1930,24 +2175,24 @@ invalid_input_test 'http://.www.foo.bar/' sane_url 1
 invalid_input_test 'http://www.foo.bar./' sane_url 1
 invalid_input_test 'http://.www.foo.bar./' sane_url 1
 #
-valid_input_test 'file' trans_mode_0
-valid_input_test 'http' trans_mode_0
-valid_input_test 'https' trans_mode_0
+invalid_input_test 'file' trans_mode_0 1
+invalid_input_test 'http' trans_mode_0 1
+invalid_input_test 'https' trans_mode_0 1
 valid_input_test 'ftp' trans_mode_0
-invalid_input_test 'scp' trans_mode_0 1
-invalid_input_test 'sftp' trans_mode_0 1
-valid_input_test 'File' trans_mode_0
-valid_input_test 'Http' trans_mode_0
-valid_input_test 'Https' trans_mode_0
+valid_input_test 'scp' trans_mode_0
+valid_input_test 'sftp' trans_mode_0
+invalid_input_test 'File' trans_mode_0 1
+invalid_input_test 'Http' trans_mode_0 1
+invalid_input_test 'Https' trans_mode_0 1
 valid_input_test 'Ftp' trans_mode_0
-invalid_input_test 'Scp' trans_mode_0 1
-invalid_input_test 'Sftp' trans_mode_0 1
-valid_input_test 'FILE' trans_mode_0
-valid_input_test 'HTTP' trans_mode_0
-valid_input_test 'HTTPS' trans_mode_0
+valid_input_test 'Scp' trans_mode_0
+valid_input_test 'Sftp' trans_mode_0
+invalid_input_test 'FILE' trans_mode_0 1
+invalid_input_test 'HTTP' trans_mode_0 1
+invalid_input_test 'HTTPS' trans_mode_0 1
 valid_input_test 'FTP' trans_mode_0
-invalid_input_test 'SCP' trans_mode_0 1
-invalid_input_test 'SFTP' trans_mode_0 1
+valid_input_test 'SCP' trans_mode_0
+valid_input_test 'SFTP' trans_mode_0
 invalid_input_test '' trans_mode_0 7
 invalid_input_test 'filer' trans_mode_0 1
 invalid_input_test 'httpr' trans_mode_0 1
@@ -1960,33 +2205,30 @@ invalid_input_test 'FTp' trans_mode_0 1
 invalid_input_test '123' trans_mode_0 1
 invalid_input_test '+' trans_mode_0 1
 #
-valid_canon_input_test 'file' trans_mode_0 'file'
-valid_canon_input_test 'File' trans_mode_0 'file'
-valid_canon_input_test 'FILE' trans_mode_0 'file'
-valid_canon_input_test 'http' trans_mode_0 'http'
-valid_canon_input_test 'Http' trans_mode_0 'http'
-valid_canon_input_test 'HTTP' trans_mode_0 'http'
-valid_canon_input_test 'https' trans_mode_0 'https'
-valid_canon_input_test 'Https' trans_mode_0 'https'
-valid_canon_input_test 'HTTPS' trans_mode_0 'https'
+valid_canon_input_test 'scp' trans_mode_0 'scp'
+valid_canon_input_test 'Scp' trans_mode_0 'scp'
+valid_canon_input_test 'SCP' trans_mode_0 'scp'
+valid_canon_input_test 'sftp' trans_mode_0 'sftp'
+valid_canon_input_test 'Sftp' trans_mode_0 'sftp'
+valid_canon_input_test 'SFTP' trans_mode_0 'sftp'
 valid_canon_input_test 'ftp' trans_mode_0 'ftp'
 valid_canon_input_test 'Ftp' trans_mode_0 'ftp'
 valid_canon_input_test 'FTP' trans_mode_0 'ftp'
 #
-invalid_input_test 'file' trans_mode_1 1
-invalid_input_test 'http' trans_mode_1 1
+valid_input_test 'file' trans_mode_1
+valid_input_test 'http' trans_mode_1
 invalid_input_test 'https' trans_mode_1 1
 valid_input_test 'ftp' trans_mode_1
 valid_input_test 'scp' trans_mode_1
 valid_input_test 'sftp' trans_mode_1
-invalid_input_test 'File' trans_mode_1 1
-invalid_input_test 'Http' trans_mode_1 1
+valid_input_test 'File' trans_mode_1
+valid_input_test 'Http' trans_mode_1
 invalid_input_test 'Https' trans_mode_1 1
 valid_input_test 'Ftp' trans_mode_1
 valid_input_test 'Scp' trans_mode_1
 valid_input_test 'Sftp' trans_mode_1
-invalid_input_test 'FILE' trans_mode_1 1
-invalid_input_test 'HTTP' trans_mode_1 1
+valid_input_test 'FILE' trans_mode_1
+valid_input_test 'HTTP' trans_mode_1
 invalid_input_test 'HTTPS' trans_mode_1 1
 valid_input_test 'FTP' trans_mode_1
 valid_input_test 'SCP' trans_mode_1
@@ -2012,6 +2254,49 @@ valid_canon_input_test 'SCP' trans_mode_1 'scp'
 valid_canon_input_test 'sftp' trans_mode_1 'sftp'
 valid_canon_input_test 'Sftp' trans_mode_1 'sftp'
 valid_canon_input_test 'SFTP' trans_mode_1 'sftp'
+valid_canon_input_test 'http' trans_mode_1 'http'
+valid_canon_input_test 'Http' trans_mode_1 'http'
+valid_canon_input_test 'HTTP' trans_mode_1 'http'
+valid_canon_input_test 'file' trans_mode_1 'file'
+valid_canon_input_test 'File' trans_mode_1 'file'
+valid_canon_input_test 'FILE' trans_mode_1 'file'
+#
+invalid_input_test 'file' trans_mode_2 1
+valid_input_test 'http' trans_mode_2
+valid_input_test 'https' trans_mode_2
+invalid_input_test 'ftp' trans_mode_2 1
+invalid_input_test 'scp' trans_mode_2 1
+invalid_input_test 'sftp' trans_mode_2 1
+invalid_input_test 'File' trans_mode_2 1
+valid_input_test 'Http' trans_mode_2
+valid_input_test 'Https' trans_mode_2
+invalid_input_test 'Ftp' trans_mode_2 1
+invalid_input_test 'Scp' trans_mode_2 1
+invalid_input_test 'Sftp' trans_mode_2 1
+invalid_input_test 'FILE' trans_mode_2 1
+valid_input_test 'HTTP' trans_mode_2
+valid_input_test 'HTTPS' trans_mode_2
+invalid_input_test 'FTP' trans_mode_2 1
+invalid_input_test 'SCP' trans_mode_2 1
+invalid_input_test 'SFTP' trans_mode_2 1
+invalid_input_test '' trans_mode_2 7
+invalid_input_test 'filer' trans_mode_2 1
+invalid_input_test 'httpr' trans_mode_2 1
+invalid_input_test 'httpsr' trans_mode_2 1
+invalid_input_test 'ftpr' trans_mode_2 1
+invalid_input_test 'FIle' trans_mode_2 1
+invalid_input_test 'HTtp' trans_mode_2 1
+invalid_input_test 'HTtps' trans_mode_2 1
+invalid_input_test 'FTp' trans_mode_2 1
+invalid_input_test '123' trans_mode_2 1
+invalid_input_test '+' trans_mode_2 1
+#
+valid_canon_input_test 'http' trans_mode_2 'http'
+valid_canon_input_test 'Http' trans_mode_2 'http'
+valid_canon_input_test 'HTTP' trans_mode_2 'http'
+valid_canon_input_test 'https' trans_mode_2 'https'
+valid_canon_input_test 'Https' trans_mode_2 'https'
+valid_canon_input_test 'HTTPS' trans_mode_2 'https'
 
 # All Done!!! -- Jessica Noll, Age 2
 #
