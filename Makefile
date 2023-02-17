@@ -1,8 +1,8 @@
-#!/usr/bin/make
+#!/usr/bin/env make
 #
 # vread.sh - read from stdin and validate the input
 #
-# By: Landon Curt Noll, 2004-2015, 2019, 2020.
+# By: Landon Curt Noll, 2004-2015, 2019, 2020, 2023
 #     http://www.isthe.com/chongo
 #
 # This work is licensed under the Creative Commons
@@ -36,7 +36,7 @@
 # Share and enjoy! :-)
 
 
-SHELL= /bin/bash
+SHELL= bash
 RM= rm
 CP= cp
 CHMOD= chmod
