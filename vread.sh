@@ -18,42 +18,33 @@
 #
 #####
 #
-# By: Landon Curt Noll, 2004-2015, 2019, 2020.
-#     http://www.isthe.com/chongo
+# Copyright (c) 2004-2015,2019,2020,2023 by Landon Curt Noll.  All Rights Reserved.
 #
-# This work is licensed under the Creative Commons
-# Attribution-ShareAlike 4.0 International License.
-# To view a copy of this license, visit
-# http://creativecommons.org/licenses/by-sa/4.0/.
+# Permission to use, copy, modify, and distribute this software and
+# its documentation for any purpose and without fee is hereby granted,
+# provided that the above copyright, this permission notice and text
+# this comment, and the disclaimer below appear in all of the following:
 #
-# This means you are free to:
+#       supporting documentation
+#       source copies
+#       source works derived from this source
+#       binaries derived from this source or from derived source
 #
-# Share — copy and redistribute the material in any medium or format
+# LANDON CURT NOLL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
+# INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO
+# EVENT SHALL LANDON CURT NOLL BE LIABLE FOR ANY SPECIAL, INDIRECT OR
+# CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF
+# USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+# OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+# PERFORMANCE OF THIS SOFTWARE.
 #
-# Adapt — remix, transform, and build upon the material for any purpose,
-# even commercially.
-#
-# The licensor cannot revoke these freedoms as long as you follow the license terms.
-#
-# Under the following terms:
-#
-# Attribution — You must give appropriate credit, provide a link to
-# the license, and indicate if changes were made. You may do so in any
-# reasonable manner, but not in any way that suggests the licensor endorses
-# you or your use.
-#
-# ShareAlike — If you remix, transform, or build upon the material, you
-# must distribute your contributions under the same license as the original.
-#
-# No additional restrictions — You may not apply legal terms or
-# technological measures that legally restrict others from doing anything
-# the license permits.
+# chongo (Landon Curt Noll, http://www.isthe.com/chongo/index.html) /\oo/\
 #
 # Share and enjoy! :-)
 
 # setup
 #
-export VERSION="4.6-20200528"
+export VERSION="4.7 2023-02-16"
 export V_FLAG=
 export B_FLAG=
 export C_FLAG=
