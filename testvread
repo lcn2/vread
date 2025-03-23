@@ -1,9 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
-# testvread.sh - test vread.sh
+# testvread - test vread
 #
 # usage:
-#	testvread.sh [-v] path-to-vread.sh
+#	testvread [-v] path-to-vread
 #
 #	NOTE: See USAGE variable below for details
 #
@@ -16,7 +16,7 @@
 #
 #####
 #
-# Copyright (c) 2004-2015,2019,2020,2023 by Landon Curt Noll.  All Rights Reserved.
+# Copyright (c) 2004-2015,2019,2020,2023,2025 by Landon Curt Noll.  All Rights Reserved.
 #
 # Permission to use, copy, modify, and distribute this software and
 # its documentation for any purpose and without fee is hereby granted,
@@ -36,13 +36,17 @@
 # OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 #
-# chongo (Landon Curt Noll, http://www.isthe.com/chongo/index.html) /\oo/\
+# chongo (Landon Curt Noll) /\oo/\
 #
-# Share and enjoy! :-)
+# http://www.isthe.com/chongo/index.html
+# https://github.com/lcn2
+#
+# Share and enjoy!  :-)
+
 
 # setup
 #
-export VERSION="4.7 2023-02-16"
+export VERSION="4.7.1 2025-03-23"
 export V_FLAG=
 export VREAD=
 export EXIT_BADTEST="1"

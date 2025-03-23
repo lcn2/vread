@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
-# vread.sh - read from stdin and validate the input
+# vread - read from stdin and validate the input
 #
 # usage:
 #	NOTE: See USAGE variable below for details of the command line
@@ -18,7 +18,7 @@
 #
 #####
 #
-# Copyright (c) 2004-2015,2019,2020,2023 by Landon Curt Noll.  All Rights Reserved.
+# Copyright (c) 2004-2015,2019,2020,2023,2025 by Landon Curt Noll.  All Rights Reserved.
 #
 # Permission to use, copy, modify, and distribute this software and
 # its documentation for any purpose and without fee is hereby granted,
@@ -38,13 +38,17 @@
 # OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
 #
-# chongo (Landon Curt Noll, http://www.isthe.com/chongo/index.html) /\oo/\
+# chongo (Landon Curt Noll) /\oo/\
 #
-# Share and enjoy! :-)
+# http://www.isthe.com/chongo/index.html
+# https://github.com/lcn2
+#
+# Share and enjoy!  :-)
+
 
 # setup
 #
-export VERSION="4.7 2023-02-16"
+export VERSION="4.7.1 2025-03-23"
 export V_FLAG=
 export B_FLAG=
 export C_FLAG=
@@ -69,10 +73,11 @@ export ANSWER SECOND_ANSWER INPUT CANONICAL_INPUT
 export PROG="$0"
 export USAGE="usage:
 
-$PROG [-h] [-v] [-b] [-c] [-o] [-e] [-r repeat_prompt] [-s] [-m maxlen] [-t timeout] type prompt [errmsg]
+$PROG [-h] [-v] [-V] [-b] [-c] [-o] [-e] [-r repeat_prompt] [-s] [-m maxlen] [-t timeout] type prompt [errmsg]
 
     -h			Output usage message and exit $EXIT_USAGE
     -v			Verbose mode for debugging
+    -V			print verison and exit
 
     -b			Do not print a blank after the promt (def: print a space after prompt and repeat_prompt)
     -c			Canonicalize the result
@@ -205,7 +210,7 @@ trap "printf '\n\ninterrupted\n\n' 1>&2; echo; exit 2" 1 2 3 15 # exit 2
 
 # parse args
 #
-while getopts :hvbcoesr:m:t: flag; do
+while getopts :hvVbcoesr:m:t: flag; do
 
     # validate flag
     #
@@ -223,6 +228,10 @@ while getopts :hvbcoesr:m:t: flag; do
         ;;
     v)
         V_FLAG="true"
+        ;;
+    V)
+        echo "$VERSION"
+	exit 2
         ;;
     o)
         O_FLAG="true"
