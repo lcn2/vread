@@ -1,6 +1,6 @@
 # vread
 
-read from stdin and validate the input
+Read from stdin and validate the input.
 
 
 # To install
@@ -37,9 +37,7 @@ fi
 # Usage
 
 ```
-usage:
-
-vread [-h] [-v] [-V] [-b] [-c] [-o] [-e] [-r repeat_prompt] [-s] [-m maxlen] [-t timeout] type prompt [errmsg]
+/usr/local/bin/vread [-h] [-v] [-V] [-b] [-c] [-o] [-e] [-r repeat_prompt] [-s] [-m maxlen] [-t timeout] type prompt [errmsg]
 
     -h			Output usage message and exit 3
     -v			Verbose mode for debugging
