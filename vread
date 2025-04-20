@@ -77,7 +77,7 @@ $PROG [-h] [-v] [-V] [-b] [-c] [-o] [-e] [-r repeat_prompt] [-s] [-m maxlen] [-t
 
     -h			Output usage message and exit $EXIT_USAGE
     -v			Verbose mode for debugging
-    -V			print verison and exit
+    -V			print version and exit
 
     -b			Do not print a blank after the promt (def: print a space after prompt and repeat_prompt)
     -c			Canonicalize the result
@@ -688,7 +688,7 @@ prompt() {
                 status="$?"
             fi
         fi
-        # we need to force a newline to the tty because read -s surpressed the newline
+        # we need to force a newline to the tty because read -s suppressed the newline
         echo >/dev/tty
     else
         if [[ -n $TIMEOUT ]]; then
@@ -829,7 +829,7 @@ prompt() {
 # usage:
 #	validate value
 #
-# This function will validate the value passed accoding to $TYPE.
+# This function will validate the value passed according to $TYPE.
 #
 #
 # returns:
